@@ -21,11 +21,12 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Cloudflared Binary Directly
+      - name: Install Cloudflared via Deb Package
         run: |
-          curl -L https://github.com/cloudflare/cloudflare-tunnel-downloads/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
-          chmod +x cloudflared
-          sudo mv cloudflared /usr/local/bin/
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget -q https://github.com/cloudflare/cloudflare-tunnel-downloads/releases/download/2024.8.3/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared-linux-amd64.deb
 
       - name: Install Python Dependencies
         run: |
@@ -81,7 +82,6 @@ jobs:
 
       - name: Start Cloudflare Tunnels & Print Public Links
         run: |
-          # Cloudflared logfile option use kar rahe hain taake exact logs record ho skein
           cloudflared tunnel --url http://localhost:8000 --logfile backend_tunnel.log &
           cloudflared tunnel --url http://localhost:3000 --logfile frontend_tunnel.log &
           
