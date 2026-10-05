@@ -81,22 +81,22 @@ jobs:
 
       - name: Start Cloudflare Tunnels & Print Public Links
         run: |
-          nohup cloudflared tunnel --url http://localhost:8000 > backend_tunnel.log 2>&1 &
-          nohup cloudflared tunnel --url http://localhost:3000 > frontend_tunnel.log 2>&1 &
+          # Cloudflared logfile option use kar rahe hain taake exact logs record ho skein
+          cloudflared tunnel --url http://localhost:8000 --logfile backend_tunnel.log &
+          cloudflared tunnel --url http://localhost:3000 --logfile frontend_tunnel.log &
           
           echo "Waiting for Cloudflare Tunnels to generate public links..."
           
-          # Dynamic loop jo check karega jab tak URLs log file me nahi aa jate
           BACKEND_URL=""
           FRONTEND_URL=""
           
-          for i in {1..10}; do
-            sleep 3
-            if [ -z "$BACKEND_URL" ]; then
-              BACKEND_URL=$(grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' backend_tunnel.log | head -n 1)
+          for i in {1..15}; do
+            sleep 2
+            if [ -z "$BACKEND_URL" ] && [ -f backend_tunnel.log ]; then
+              BACKEND_URL=$(grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' backend_tunnel.log | head -n 1)
             fi
-            if [ -z "$FRONTEND_URL" ]; then
-              FRONTEND_URL=$(grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' frontend_tunnel.log | head -n 1)
+            if [ -z "$FRONTEND_URL" ] && [ -f frontend_tunnel.log ]; then
+              FRONTEND_URL=$(grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' frontend_tunnel.log | head -n 1)
             fi
             if [ -n "$BACKEND_URL" ] && [ -n "$FRONTEND_URL" ]; then
               break
@@ -105,11 +105,20 @@ jobs:
 
           echo "=================================================="
           echo "  DJANGO BACKEND TUNNEL LINK:"
-          echo "${BACKEND_URL:-Backend link generation failed. Check backend_tunnel.log}"
+          echo "${BACKEND_URL:-Backend link generation failed. Checking logs below...}"
           echo "=================================================="
           echo "  REACT FRONTEND TUNNEL LINK:"
-          echo "${FRONTEND_URL:-Frontend link generation failed. Check frontend_tunnel.log}"
+          echo "${FRONTEND_URL:-Frontend link generation failed. Checking logs below...}"
           echo "=================================================="
+
+          if [ -z "$BACKEND_URL" ]; then
+            echo "--- Backend Cloudflare Log Dump ---"
+            cat backend_tunnel.log || true
+          fi
+          if [ -z "$FRONTEND_URL" ]; then
+            echo "--- Frontend Cloudflare Log Dump ---"
+            cat frontend_tunnel.log || true
+          fi
 
       - name: Keep Server Alive for 2 Hours (120 Minutes)
         run: |
