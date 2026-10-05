@@ -13,15 +13,23 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-hadi88-apps-secure-prod
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 # Cloudflare Tunnels aur kisi bhi domain ko allow karne ke liye
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    '*',
+    'api.uqn88.store',
+    'app.uqn88.store',
+]
 
-# Cloudflare Tunnel URLs aur Localhost ke liye CSRF trusted origins
+# Cloudflare Tunnel URLs, Custom Domains aur Localhost ke liye CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = [
     'https://*.trycloudflare.com',
+    'https://*.uqn88.store',
+    'https://api.uqn88.store',
+    'https://app.uqn88.store',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'http://localhost:3000',
 ]
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
