@@ -3,13 +3,30 @@ from django.views.generic import ListView, DetailView
 from django.http import JsonResponse, FileResponse, Http404
 from django.db.models import Q, F, Sum, Avg
 from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.decorators import user_passes_test
 from .models import App, AppDemand, CATEGORY_CHOICES
 from .forms import AppUploadForm, AppDemandForm
 import os
 
+def staff_required(view_func):
+    """Decorator ensuring only authenticated admin/staff can access /admin/manage/"""
+    decorated_view = user_passes_test(
+        lambda u: u.is_authenticated and (u.is_staff or u.is_superuser),
+        login_url='/admin/manage/login/'
+    )(view_func)
+    return decorated_view
+
+
+# ==========================================
+# PUBLIC USER VIEWS (localhost:8000/)
+# ==========================================
+
 class AppCatalogView(ListView):
     """
-    Hadi88 Apps Storefront - Exactly 18 apps per page with pagination
+    Public User Storefront - Exactly 18 apps per page with pagination
+    Strictly displays public uploaded apps and 'Ask for App' intake
     """
     model = App
     template_name = 'store/index.html'
@@ -102,7 +119,7 @@ def download_apk(request, package_name):
 
 def contact_admin_demand(request):
     """
-    User Demand Form:
+    Public User Demand Form:
     "Find and ask for your dreaming apps"
     "We are building app on your demand"
     Displays strict legal notice warning against illegal or theft apps.
@@ -122,8 +139,46 @@ def contact_admin_demand(request):
     return render(request, 'store/contact_admin.html', {'form': form})
 
 
+# ==========================================
+# SECURED ADMIN PORTAL (/admin/manage/)
+# ==========================================
+
+def admin_login_view(request):
+    """Secure Admin Login at /admin/manage/login/"""
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect('admin_manage')
+
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            if user.is_staff or user.is_superuser:
+                login(request, user)
+                messages.success(request, f"Welcome back, Administrator {user.username}!")
+                return redirect('admin_manage')
+            else:
+                messages.error(request, "Access restricted to staff administrators.")
+        else:
+            messages.error(request, "Invalid username or password.")
+    else:
+        form = AuthenticationForm()
+
+    return render(request, 'store/admin_login.html', {'form': form})
+
+
+def admin_logout_view(request):
+    """Admin Logout handler"""
+    logout(request)
+    messages.info(request, "You have been signed out from the Admin Portal.")
+    return redirect('app_catalog')
+
+
+@staff_required
 def admin_dashboard(request):
-    """Custom Administrative dashboard with app CRUD & Client Demands review"""
+    """
+    Custom Secured Route: /admin/manage/
+    Full administrative control: Publish apps, edit apps, delete apps, manage client demands.
+    """
     apps = App.objects.all().order_by('-created_at')
     demands = AppDemand.objects.all().order_by('-created_at')
 
@@ -134,9 +189,68 @@ def admin_dashboard(request):
         'pending_demands': demands.filter(status='Pending').count(),
     }
 
+    upload_form = AppUploadForm()
     return render(request, 'store/admin_dashboard.html', {
         'apps': apps,
         'demands': demands,
         'stats': stats,
-        'upload_form': AppUploadForm(),
+        'upload_form': upload_form,
     })
+
+
+@staff_required
+def admin_publish_app(request):
+    """Publish a new mobile application binary and metadata"""
+    if request.method == 'POST':
+        form = AppUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            app = form.save()
+            messages.success(request, f"Successfully published '{app.app_name}' (v{app.version}) to Hadi88 Store!")
+            return redirect('admin_manage')
+        else:
+            messages.error(request, "Please correct the form errors below.")
+    return redirect('admin_manage')
+
+
+@staff_required
+def admin_edit_app(request, pk):
+    """Update existing application details or APK version"""
+    app = get_object_or_404(App, pk=pk)
+    if request.method == 'POST':
+        form = AppUploadForm(request.POST, request.FILES, instance=app)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Updated '{app.app_name}' details.")
+            return redirect('admin_manage')
+    return redirect('admin_manage')
+
+
+@staff_required
+def admin_delete_app(request, pk):
+    """Delete application from store"""
+    app = get_object_or_404(App, pk=pk)
+    app_name = app.app_name
+    app.delete()
+    messages.success(request, f"Application '{app_name}' removed from store.")
+    return redirect('admin_manage')
+
+
+@staff_required
+def admin_update_demand_status(request, pk):
+    """Update status of client on-demand app request"""
+    demand = get_object_or_404(AppDemand, pk=pk)
+    new_status = request.POST.get('status')
+    if new_status in dict(DEMAND_STATUS_CHOICES):
+        demand.status = new_status
+        demand.save()
+        messages.success(request, f"Demand '{demand.app_title}' marked as '{new_status}'.")
+    return redirect('admin_manage')
+
+
+@staff_required
+def admin_delete_demand(request, pk):
+    """Delete client app demand"""
+    demand = get_object_or_404(AppDemand, pk=pk)
+    demand.delete()
+    messages.success(request, "Demand request deleted.")
+    return redirect('admin_manage')

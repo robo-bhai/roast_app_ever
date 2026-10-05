@@ -1,111 +1,159 @@
 {% extends 'store/base.html' %}
 
-{% block title %}Admin Dashboard - Hadi88 Apps{% endblock %}
+{% block title %}Admin Dashboard - Hadi88 Apps Portal (/admin/manage/){% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+<div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6">
 
-  <!-- Header -->
-  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+  <!-- Header & Logout -->
+  <div class="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
     <div>
-      <h1 class="text-3xl font-display font-extrabold text-white">Admin Management Dashboard</h1>
-      <p class="text-sm text-stone-400">Manage Hadi88 Apps inventory, publish APK packages, and review client on-demand requests.</p>
+      <div class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Hadi88 Custom Admin Portal</div>
+      <h1 class="text-lg sm:text-2xl font-display font-extrabold text-white">Management Dashboard (/admin/manage/)</h1>
+      <p class="text-xs text-stone-400">Welcome, {{ request.user.username }}. Full control over apps and client demands.</p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <a href="{% url 'admin_logout' %}" class="px-3 py-1.5 rounded-xl bg-red-950/40 text-red-300 hover:bg-red-900/60 border border-red-500/30 text-xs font-semibold">
+        Sign Out
+      </a>
     </div>
   </div>
 
-  <!-- KPI Grid -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    <div class="glass-panel rounded-2xl p-5">
-      <div class="text-xs font-semibold text-stone-400 uppercase">Total Downloads</div>
-      <div class="text-3xl font-display font-bold text-amber-400 mt-2">{{ stats.total_downloads }}</div>
+  <!-- KPI Stats Grid -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Total Downloads</span>
+      <div class="text-lg sm:text-2xl font-bold text-amber-400 font-mono">{{ stats.total_downloads }}</div>
     </div>
-    <div class="glass-panel rounded-2xl p-5">
-      <div class="text-xs font-semibold text-stone-400 uppercase">Total Apps Listed</div>
-      <div class="text-3xl font-display font-bold text-white mt-2">{{ stats.total_apps }}</div>
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Live Apps</span>
+      <div class="text-lg sm:text-2xl font-bold text-white font-mono">{{ stats.total_apps }}</div>
     </div>
-    <div class="glass-panel rounded-2xl p-5">
-      <div class="text-xs font-semibold text-stone-400 uppercase">Pending Demands</div>
-      <div class="text-3xl font-display font-bold text-amber-400 mt-2">{{ stats.pending_demands }}</div>
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Client Demands</span>
+      <div class="text-lg sm:text-2xl font-bold text-amber-400 font-mono">{{ stats.pending_demands }} pending</div>
     </div>
-    <div class="glass-panel rounded-2xl p-5">
-      <div class="text-xs font-semibold text-stone-400 uppercase">Average Rating</div>
-      <div class="text-3xl font-display font-bold text-white mt-2">★ {{ stats.avg_rating }}</div>
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Average Rating</span>
+      <div class="text-lg sm:text-2xl font-bold text-white font-mono">★ {{ stats.avg_rating }}</div>
+    </div>
+  </div>
+
+  <!-- Publish New App Form Block -->
+  <div class="glass-panel rounded-2xl p-4 sm:p-6 border border-amber-500/20 space-y-3">
+    <h2 class="text-sm sm:text-base font-bold text-white">Publish New Application</h2>
+    <form method="POST" action="{% url 'admin_publish_app' %}" enctype="multipart/form-data" class="space-y-3">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+        <div>
+          <label class="block text-stone-300 mb-1">App Name</label>
+          {{ upload_form.app_name }}
+        </div>
+        <div>
+          <label class="block text-stone-300 mb-1">Package Name (Slug)</label>
+          {{ upload_form.package_name }}
+        </div>
+        <div>
+          <label class="block text-stone-300 mb-1">Category</label>
+          {{ upload_form.category }}
+        </div>
+        <div>
+          <label class="block text-stone-300 mb-1">Version</label>
+          {{ upload_form.version }}
+        </div>
+        <div>
+          <label class="block text-stone-300 mb-1">File Size</label>
+          {{ upload_form.file_size }}
+        </div>
+        <div>
+          <label class="block text-stone-300 mb-1">APK Binary</label>
+          {{ upload_form.apk_file }}
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs text-stone-300 mb-1">Description</label>
+        {{ upload_form.description }}
+      </div>
+      <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 text-black font-extrabold text-xs">
+        Publish App to Store
+      </button>
+    </form>
+  </div>
+
+  <!-- Client Demands Review & Management -->
+  <div class="glass-panel rounded-2xl p-4 sm:p-6 border border-amber-500/20 space-y-3">
+    <h2 class="text-sm sm:text-base font-bold text-white">Client App Requests & Demands</h2>
+    <div class="space-y-2">
+      {% for demand in demands %}
+      <div class="glass-panel rounded-xl p-3 border border-amber-500/15 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="space-y-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-white text-xs">{{ demand.app_title }}</span>
+            <span class="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded">{{ demand.platform }}</span>
+            <span class="text-[9px] text-stone-400">{{ demand.category }}</span>
+          </div>
+          <div class="text-[10px] text-stone-300">
+            <strong>{{ demand.user_name }}</strong> · {{ demand.email }} · {{ demand.contact_method }}: {{ demand.contact_handle }}
+          </div>
+          <p class="text-[11px] text-stone-300 leading-relaxed">{{ demand.requirements }}</p>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <form method="POST" action="{% url 'admin_update_demand_status' demand.pk %}">
+            {% csrf_token %}
+            <select name="status" onchange="this.form.submit()" class="bg-[#18120e] text-[10px] text-amber-300 rounded-lg px-2 py-1 border border-amber-500/30">
+              <option value="Pending" {% if demand.status == 'Pending' %}selected{% endif %}>Pending</option>
+              <option value="In Review" {% if demand.status == 'In Review' %}selected{% endif %}>In Review</option>
+              <option value="Approved" {% if demand.status == 'Approved' %}selected{% endif %}>Approved</option>
+              <option value="In Development" {% if demand.status == 'In Development' %}selected{% endif %}>In Dev</option>
+              <option value="Rejected" {% if demand.status == 'Rejected' %}selected{% endif %}>Rejected</option>
+            </select>
+          </form>
+
+          <form method="POST" action="{% url 'admin_delete_demand' demand.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="px-2 py-1 rounded bg-red-950/40 text-red-400 text-xs hover:bg-red-900/60">
+              Delete
+            </button>
+          </form>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-xs text-stone-400 py-4 text-center">No inbound client app requests.</div>
+      {% endfor %}
     </div>
   </div>
 
   <!-- Applications Inventory -->
-  <div class="glass-panel rounded-3xl overflow-hidden">
-    <div class="p-6 border-b border-amber-500/15 flex items-center justify-between">
-      <h2 class="text-lg font-display font-bold text-white">Applications Inventory</h2>
-      <span class="text-xs text-stone-400">{{ apps|length }} records</span>
-    </div>
-    <div class="overflow-x-auto">
+  <div class="space-y-2">
+    <h2 class="text-xs sm:text-sm font-bold text-white">Published Apps Inventory</h2>
+    <div class="glass-panel rounded-2xl overflow-hidden border border-amber-500/20">
       <table class="w-full text-left text-xs">
-        <thead class="bg-stone-900/60 text-stone-400 uppercase border-b border-amber-500/10">
+        <thead class="bg-[#18120e] text-stone-400 border-b border-amber-500/15">
           <tr>
-            <th class="px-6 py-4">App</th>
-            <th class="px-6 py-4">Category</th>
-            <th class="px-6 py-4">Version</th>
-            <th class="px-6 py-4">Downloads</th>
-            <th class="px-6 py-4">Rating</th>
+            <th class="p-3">Application</th>
+            <th class="p-3">Category</th>
+            <th class="p-3">Version</th>
+            <th class="p-3">Downloads</th>
+            <th class="p-3">Rating</th>
+            <th class="p-3 text-right">Action</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-amber-500/10">
           {% for app in apps %}
           <tr class="hover:bg-amber-500/5">
-            <td class="px-6 py-4 flex items-center gap-3">
-              <img src="{{ app.app_icon.url }}" alt="{{ app.app_name }}" class="w-9 h-9 rounded-lg object-cover">
-              <div>
-                <div class="font-bold text-white">{{ app.app_name }}</div>
-                <div class="text-[11px] text-stone-500">{{ app.package_name }}</div>
-              </div>
+            <td class="p-3 font-bold text-white">{{ app.app_name }}</td>
+            <td class="p-3 text-stone-300">{{ app.category }}</td>
+            <td class="p-3 font-mono text-stone-300">v{{ app.version }}</td>
+            <td class="p-3 font-mono text-amber-400">{{ app.downloads_count }}</td>
+            <td class="p-3 font-bold text-amber-400">★ {{ app.rating }}</td>
+            <td class="p-3 text-right">
+              <form method="POST" action="{% url 'admin_delete_app' app.pk %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="text-red-400 hover:text-red-300 text-xs">Delete</button>
+              </form>
             </td>
-            <td class="px-6 py-4 text-stone-300">{{ app.category }}</td>
-            <td class="px-6 py-4 text-stone-300">v{{ app.version }}</td>
-            <td class="px-6 py-4 font-mono text-amber-400 font-bold">{{ app.formatted_downloads }}</td>
-            <td class="px-6 py-4 text-amber-400">★ {{ app.rating }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Client App Demands Review Table -->
-  <div class="glass-panel rounded-3xl overflow-hidden">
-    <div class="p-6 border-b border-amber-500/15 flex items-center justify-between">
-      <h2 class="text-lg font-display font-bold text-white">Client App Demands (On-Demand Requests)</h2>
-      <span class="text-xs text-stone-400">{{ demands|length }} submissions</span>
-    </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-xs">
-        <thead class="bg-stone-900/60 text-stone-400 uppercase border-b border-amber-500/10">
-          <tr>
-            <th class="px-6 py-4">Requested App</th>
-            <th class="px-6 py-4">User</th>
-            <th class="px-6 py-4">Platform</th>
-            <th class="px-6 py-4">Timeline</th>
-            <th class="px-6 py-4">Status</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-amber-500/10">
-          {% for d in demands %}
-          <tr class="hover:bg-amber-500/5">
-            <td class="px-6 py-4">
-              <div class="font-bold text-white">{{ d.app_title }}</div>
-              <div class="text-[11px] text-stone-400 truncate max-w-xs">{{ d.requirements }}</div>
-            </td>
-            <td class="px-6 py-4">
-              <div class="text-stone-200">{{ d.user_name }}</div>
-              <div class="text-[11px] text-stone-500">{{ d.email }}</div>
-            </td>
-            <td class="px-6 py-4 text-stone-300">{{ d.platform }}</td>
-            <td class="px-6 py-4 text-stone-300">{{ d.timeline }}</td>
-            <td class="px-6 py-4 font-bold text-amber-400">{{ d.status }}</td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="5" class="px-6 py-8 text-center text-stone-500">No demands submitted yet.</td>
           </tr>
           {% endfor %}
         </tbody>
