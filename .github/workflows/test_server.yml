@@ -21,12 +21,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install System Dependencies & Cloudflared
+      - name: Install Cloudflared Binary Directly
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget
-          wget -q https://github.com/cloudflare/cloudflare-tunnel-downloads/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared-linux-amd64.deb
+          curl -L https://github.com/cloudflare/cloudflare-tunnel-downloads/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
+          chmod +x cloudflared
+          sudo mv cloudflared /usr/local/bin/
 
       - name: Install Python Dependencies
         run: |
@@ -86,7 +85,7 @@ jobs:
           nohup cloudflared tunnel --url http://localhost:3000 > frontend_tunnel.log 2>&1 &
           
           echo "Waiting for Cloudflare Tunnels to generate public links..."
-          sleep 10
+          sleep 12
           
           echo "=================================================="
           echo "  DJANGO BACKEND TUNNEL LINK:"
