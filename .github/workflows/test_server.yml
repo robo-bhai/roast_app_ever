@@ -90,11 +90,11 @@ jobs:
           fi
 
           # Tunnels ko run karke logs capture karein
-          cloudflared tunnel --no-autoupdate run --token "$BACKEND_TOKEN" > backend_cf.log 2>&1 &
-          cloudflared tunnel --no-autoupdate run --token "$FRONTEND_TOKEN" > frontend_cf.log 2>&1 &
+          nohup cloudflared tunnel --no-autoupdate run --token "$BACKEND_TOKEN" > backend_cf.log 2>&1 &
+          nohup cloudflared tunnel --no-autoupdate run --token "$FRONTEND_TOKEN" > frontend_cf.log 2>&1 &
 
           echo "Waiting for Cloudflare Tunnels to establish connections..."
-          sleep 8
+          sleep 10
 
           echo "=================================================="
           echo "=== Backend Tunnel Log Check ==="
@@ -111,9 +111,12 @@ jobs:
           # Background loop jo tunnels ko crash hone par monitor/check karti rahegi
           for i in {1..120}; do
             sleep 60
-            if ! pgrep -x "cloudflared" > /dev/null; then
-              echo "Warning: Cloudflared process stopped! Log status:"
+            if ! pgrep -f "cloudflared" > /dev/null; then
+              echo "CRITICAL: Cloudflared process stopped! Dumping logs:"
+              echo "=== BACKEND LOGS ==="
               cat backend_cf.log || true
+              echo "=== FRONTEND LOGS ==="
               cat frontend_cf.log || true
+              exit 1
             fi
           done
