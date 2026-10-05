@@ -85,14 +85,30 @@ jobs:
           nohup cloudflared tunnel --url http://localhost:3000 > frontend_tunnel.log 2>&1 &
           
           echo "Waiting for Cloudflare Tunnels to generate public links..."
-          sleep 12
           
+          # Dynamic loop jo check karega jab tak URLs log file me nahi aa jate
+          BACKEND_URL=""
+          FRONTEND_URL=""
+          
+          for i in {1..10}; do
+            sleep 3
+            if [ -z "$BACKEND_URL" ]; then
+              BACKEND_URL=$(grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' backend_tunnel.log | head -n 1)
+            fi
+            if [ -z "$FRONTEND_URL" ]; then
+              FRONTEND_URL=$(grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' frontend_tunnel.log | head -n 1)
+            fi
+            if [ -n "$BACKEND_URL" ] && [ -n "$FRONTEND_URL" ]; then
+              break
+            fi
+          done
+
           echo "=================================================="
           echo "  DJANGO BACKEND TUNNEL LINK:"
-          grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' backend_tunnel.log | head -n 1 || echo "Backend link generating..."
+          echo "${BACKEND_URL:-Backend link generation failed. Check backend_tunnel.log}"
           echo "=================================================="
           echo "  REACT FRONTEND TUNNEL LINK:"
-          grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' frontend_tunnel.log | head -n 1 || echo "Frontend link generating..."
+          echo "${FRONTEND_URL:-Frontend link generation failed. Check frontend_tunnel.log}"
           echo "=================================================="
 
       - name: Keep Server Alive for 2 Hours (120 Minutes)
