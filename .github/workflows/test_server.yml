@@ -33,17 +33,18 @@ jobs:
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install gunicorn
+          pip install gunicorn whitenoise
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Install Frontend Dependencies
         run: |
           if [ -f package.json ]; then npm install --legacy-peer-deps; fi
 
-      - name: Run Django Migrations
+      - name: Run Django Migrations & Collect Static
         run: |
           python manage.py makemigrations
           python manage.py migrate
+          python manage.py collectstatic --noinput
 
       - name: Create Superuser (from Secrets if not exists)
         env:
