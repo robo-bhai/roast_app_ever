@@ -21,12 +21,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Cloudflared via Deb Package
+      - name: Install Cloudflared Binary
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget
-          wget -q https://github.com/cloudflare/cloudflare-tunnel-downloads/releases/download/2024.8.3/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared-linux-amd64.deb
+          curl -L -s https://github.com/cloudflare/cloudflare-tunnel-downloads/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
+          chmod +x cloudflared
+          sudo mv cloudflared /usr/local/bin/
 
       - name: Install Python Dependencies
         run: |
@@ -82,15 +81,15 @@ jobs:
 
       - name: Start Cloudflare Tunnels & Print Public Links
         run: |
-          cloudflared tunnel --url http://localhost:8000 --logfile backend_tunnel.log &
-          cloudflared tunnel --url http://localhost:3000 --logfile frontend_tunnel.log &
+          nohup cloudflared tunnel --url http://localhost:8000 --logfile backend_tunnel.log > /dev/null 2>&1 &
+          nohup cloudflared tunnel --url http://localhost:3000 --logfile frontend_tunnel.log > /dev/null 2>&1 &
           
           echo "Waiting for Cloudflare Tunnels to generate public links..."
           
           BACKEND_URL=""
           FRONTEND_URL=""
           
-          for i in {1..15}; do
+          for i in {1..20}; do
             sleep 2
             if [ -z "$BACKEND_URL" ] && [ -f backend_tunnel.log ]; then
               BACKEND_URL=$(grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' backend_tunnel.log | head -n 1)
