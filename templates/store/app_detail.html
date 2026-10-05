@@ -1,0 +1,111 @@
+{% extends 'store/base.html' %}
+
+{% block title %}{{ app.app_name }} - Hadi88 Apps{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+
+  <!-- Header Card: Icon, Title, Rating & Download Button -->
+  <div class="glass-panel rounded-3xl p-6 md:p-8 space-y-6">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+      
+      <div class="flex items-center gap-5">
+        <img 
+          src="{{ app.app_icon.url }}" 
+          alt="{{ app.app_name }}" 
+          class="w-24 h-24 md:w-28 md:h-28 rounded-2xl object-cover border border-amber-500/25 shadow-2xl bg-stone-900 shrink-0"
+        >
+        <div class="space-y-1">
+          <h1 class="text-2xl md:text-4xl font-display font-extrabold text-white tracking-tight">
+            {{ app.app_name }}
+          </h1>
+          <p class="text-sm font-semibold text-amber-400">{{ app.developer_name }}</p>
+          <div class="flex items-center gap-2 text-xs text-stone-400">
+            <span>{{ app.category }}</span>
+            <span>·</span>
+            <span>Version {{ app.version }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Download Action Button -->
+      <div class="w-full sm:w-auto shrink-0">
+        <a 
+          href="{% url 'download_apk' app.package_name %}"
+          class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-base flex items-center justify-center gap-3 shadow-2xl shadow-amber-500/30 transition-all hover:scale-102"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          Download APK ({{ app.file_size }})
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Quick Metrics Strip -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-amber-500/15 text-center">
+      <div class="p-3 rounded-xl bg-stone-900/50">
+        <div class="text-xs text-stone-400">Rating</div>
+        <div class="text-lg font-bold text-amber-400 mt-0.5">★ {{ app.rating }}</div>
+      </div>
+      <div class="p-3 rounded-xl bg-stone-900/50">
+        <div class="text-xs text-stone-400">Downloads</div>
+        <div class="text-lg font-bold text-white mt-0.5">{{ app.formatted_downloads }}</div>
+      </div>
+      <div class="p-3 rounded-xl bg-stone-900/50">
+        <div class="text-xs text-stone-400">Package Size</div>
+        <div class="text-lg font-bold text-white mt-0.5">{{ app.file_size }}</div>
+      </div>
+      <div class="p-3 rounded-xl bg-stone-900/50">
+        <div class="text-xs text-stone-400">Updated</div>
+        <div class="text-lg font-bold text-stone-300 mt-0.5">{{ app.updated_at|date:"M d, Y" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner Artwork -->
+  {% if app.banner_image %}
+  <div class="glass-panel rounded-3xl overflow-hidden p-3">
+    <img src="{{ app.banner_image.url }}" alt="{{ app.app_name }} banner" class="w-full h-80 object-cover rounded-2xl">
+  </div>
+  {% endif %}
+
+  <!-- Description & Specifications -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2 glass-panel rounded-3xl p-6 md:p-8 space-y-4">
+      <h2 class="text-xl font-display font-bold text-white">About this application</h2>
+      <div class="text-sm text-stone-300 leading-relaxed space-y-4 whitespace-pre-line">
+        {{ app.description }}
+      </div>
+    </div>
+
+    <div class="glass-panel rounded-3xl p-6 md:p-8 space-y-4">
+      <h2 class="text-lg font-display font-bold text-white">Technical Details</h2>
+      <dl class="space-y-3 text-xs">
+        <div>
+          <dt class="text-stone-400">Package Identifier</dt>
+          <dd class="font-mono text-amber-300 mt-0.5 break-all">{{ app.package_name }}</dd>
+        </div>
+        <div>
+          <dt class="text-stone-400">Current Version</dt>
+          <dd class="font-semibold text-white mt-0.5">{{ app.version }}</dd>
+        </div>
+        <div>
+          <dt class="text-stone-400">Category</dt>
+          <dd class="font-semibold text-white mt-0.5">{{ app.category }}</dd>
+        </div>
+        <div>
+          <dt class="text-stone-400">Architecture</dt>
+          <dd class="font-semibold text-white mt-0.5">arm64-v8a / armeabi-v7a</dd>
+        </div>
+        <div>
+          <dt class="text-stone-400">Developer</dt>
+          <dd class="font-semibold text-white mt-0.5">{{ app.developer_name }}</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

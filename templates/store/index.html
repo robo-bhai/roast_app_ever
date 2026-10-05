@@ -1,0 +1,99 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+
+  <!-- Hero Spotlight -->
+  {% if featured_apps %}
+  <section class="glass-panel rounded-3xl p-6 sm:p-8 border border-amber-500/20 relative overflow-hidden">
+    {% with hero=featured_apps.0 %}
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <div class="lg:col-span-7 space-y-4">
+        <div class="text-xs font-bold text-amber-400 uppercase tracking-wide">
+          Hadi88 Apps · "Find and ask for your dreaming apps"
+        </div>
+        <h1 class="text-3xl sm:text-5xl font-display font-extrabold text-white leading-tight">
+          {{ hero.app_name }}
+        </h1>
+        <p class="text-xs sm:text-sm text-stone-300 line-clamp-3 leading-relaxed">
+          {{ hero.description }}
+        </p>
+        <div class="flex items-center gap-3 pt-2">
+          <a href="{{ hero.get_absolute_url }}" class="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs sm:text-sm shadow-xl">
+            View Details & Install
+          </a>
+          <a href="{% url 'contact_admin_demand' %}" class="px-5 py-3 rounded-xl glass-panel text-amber-300 text-xs sm:text-sm font-semibold">
+            Ask for Custom App
+          </a>
+        </div>
+      </div>
+      <div class="lg:col-span-5">
+        <img src="{{ hero.banner_image.url }}" alt="{{ hero.app_name }}" class="w-full h-60 sm:h-72 object-cover rounded-2xl border border-amber-500/20">
+      </div>
+    </div>
+    {% endwith %}
+  </section>
+  {% endif %}
+
+  <!-- Categories -->
+  <section class="space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg sm:text-xl font-display font-bold text-white">Categories</h2>
+      <span class="text-xs text-stone-400">{{ total_apps_count }} apps available</span>
+    </div>
+    <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+      {% for cat in categories %}
+      <a href="?category={{ cat }}" class="whitespace-nowrap px-4 py-2 rounded-xl text-xs font-semibold {% if current_category == cat %}bg-amber-500 text-black{% else %}glass-panel text-stone-300{% endif %}">
+        {{ cat }}
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- 18 Apps Per Page Grid -->
+  <section class="space-y-6">
+    <div class="flex items-center justify-between border-b border-amber-500/10 pb-3">
+      <h2 class="text-xl font-display font-bold text-white">
+        {% if current_category != 'All' %}{{ current_category }} Apps{% else %}All Applications{% endif %}
+      </h2>
+      <span class="text-xs font-mono text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg">18 Apps Per Page</span>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      {% for app in apps %}
+      <div class="glass-panel rounded-2xl p-4 flex flex-col justify-between">
+        <div>
+          <img src="{{ app.app_icon.url }}" alt="{{ app.app_name }}" class="w-full aspect-square rounded-xl object-cover mb-3">
+          <h3 class="font-bold text-xs sm:text-sm text-white truncate">{{ app.app_name }}</h3>
+          <p class="text-[11px] text-stone-400 truncate">{{ app.developer_name }}</p>
+          <div class="text-[11px] text-amber-400 mt-1">★ {{ app.rating }} · {{ app.file_size }}</div>
+        </div>
+        <div class="pt-3 mt-3 border-t border-amber-500/10">
+          <a href="{% url 'download_apk' app.package_name %}" class="w-full py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black text-xs font-bold text-center block">
+            Install (APK)
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination Controls -->
+    {% if is_paginated %}
+    <div class="flex items-center justify-between glass-panel p-4 rounded-2xl text-xs">
+      <div>
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 glass-panel rounded-xl text-stone-300">Previous</a>
+        {% endif %}
+      </div>
+      <span class="text-stone-400">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+      <div>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 glass-panel rounded-xl text-stone-300">Next</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

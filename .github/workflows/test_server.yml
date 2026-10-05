@@ -1,0 +1,102 @@
+name: Run AppStore Test Servers & Cloudflare Tunnel
+
+on:
+  workflow_dispatch: # Direct GitHub Actions tab se manual run karne ke liye
+
+jobs:
+  run-appstore:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install System Dependencies & Cloudflared
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget -q https://github.com/cloudflare/cloudflare-tunnel-downloads/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared-linux-amd64.deb
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install gunicorn
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Install Frontend Dependencies
+        run: |
+          if [ -f package.json ]; then npm install; fi
+
+      - name: Run Django Migrations
+        run: |
+          python manage.py makemigrations
+          python manage.py migrate
+
+      - name: Create Superuser (from Secrets if not exists)
+        env:
+          DJANGO_SUPERUSER_USERNAME: ${{ secrets.SUPERUSER_USERNAME }}
+          DJANGO_SUPERUSER_EMAIL: ${{ secrets.SUPERUSER_EMAIL }}
+          DJANGO_SUPERUSER_PASSWORD: ${{ secrets.SUPERUSER_PASSWORD }}
+        run: |
+          python - << 'EOF'
+          import os
+          import django
+
+          os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
+          django.setup()
+
+          from django.contrib.auth import get_user_model
+          User = get_user_model()
+
+          username = os.getenv('DJANGO_SUPERUSER_USERNAME', 'admin')
+          email = os.getenv('DJANGO_SUPERUSER_EMAIL', 'admin@example.com')
+          password = os.getenv('DJANGO_SUPERUSER_PASSWORD', 'admin1234')
+
+          if not User.objects.filter(username=username).exists():
+              User.objects.create_superuser(username=username, email=email, password=password)
+              print(f"Superuser '{username}' successfully created!")
+          else:
+              print(f"Superuser '{username}' already exists. Skipping creation.")
+          EOF
+
+      - name: Start Gunicorn (Django Backend on Port 8000)
+        run: |
+          nohup gunicorn appstore_project.wsgi:application --bind 0.0.0.0:8000 > gunicorn.log 2>&1 &
+          sleep 3
+
+      - name: Start Vite Frontend Server (Port 3000)
+        run: |
+          nohup npm run dev -- --host 0.0.0.0 --port 3000 > vite.log 2>&1 &
+          sleep 5
+
+      - name: Start Cloudflare Tunnels & Print Public Links
+        run: |
+          nohup cloudflared tunnel --url http://localhost:8000 > backend_tunnel.log 2>&1 &
+          nohup cloudflared tunnel --url http://localhost:3000 > frontend_tunnel.log 2>&1 &
+          
+          echo "Waiting for Cloudflare Tunnels to generate public links..."
+          sleep 10
+          
+          echo "=================================================="
+          echo "  DJANGO BACKEND TUNNEL LINK:"
+          grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' backend_tunnel.log | head -n 1 || echo "Backend link generating..."
+          echo "=================================================="
+          echo "  REACT FRONTEND TUNNEL LINK:"
+          grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' frontend_tunnel.log | head -n 1 || echo "Frontend link generating..."
+          echo "=================================================="
+
+      - name: Keep Server Alive for 2 Hours (120 Minutes)
+        run: |
+          echo "Server live hai! Aap uper diye gaye links se 2 ghante tak test kar sakte hain."
+          sleep 7200

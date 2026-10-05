@@ -1,0 +1,117 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Admin Dashboard - Hadi88 Apps{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-display font-extrabold text-white">Admin Management Dashboard</h1>
+      <p class="text-sm text-stone-400">Manage Hadi88 Apps inventory, publish APK packages, and review client on-demand requests.</p>
+    </div>
+  </div>
+
+  <!-- KPI Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="glass-panel rounded-2xl p-5">
+      <div class="text-xs font-semibold text-stone-400 uppercase">Total Downloads</div>
+      <div class="text-3xl font-display font-bold text-amber-400 mt-2">{{ stats.total_downloads }}</div>
+    </div>
+    <div class="glass-panel rounded-2xl p-5">
+      <div class="text-xs font-semibold text-stone-400 uppercase">Total Apps Listed</div>
+      <div class="text-3xl font-display font-bold text-white mt-2">{{ stats.total_apps }}</div>
+    </div>
+    <div class="glass-panel rounded-2xl p-5">
+      <div class="text-xs font-semibold text-stone-400 uppercase">Pending Demands</div>
+      <div class="text-3xl font-display font-bold text-amber-400 mt-2">{{ stats.pending_demands }}</div>
+    </div>
+    <div class="glass-panel rounded-2xl p-5">
+      <div class="text-xs font-semibold text-stone-400 uppercase">Average Rating</div>
+      <div class="text-3xl font-display font-bold text-white mt-2">★ {{ stats.avg_rating }}</div>
+    </div>
+  </div>
+
+  <!-- Applications Inventory -->
+  <div class="glass-panel rounded-3xl overflow-hidden">
+    <div class="p-6 border-b border-amber-500/15 flex items-center justify-between">
+      <h2 class="text-lg font-display font-bold text-white">Applications Inventory</h2>
+      <span class="text-xs text-stone-400">{{ apps|length }} records</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-stone-900/60 text-stone-400 uppercase border-b border-amber-500/10">
+          <tr>
+            <th class="px-6 py-4">App</th>
+            <th class="px-6 py-4">Category</th>
+            <th class="px-6 py-4">Version</th>
+            <th class="px-6 py-4">Downloads</th>
+            <th class="px-6 py-4">Rating</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-amber-500/10">
+          {% for app in apps %}
+          <tr class="hover:bg-amber-500/5">
+            <td class="px-6 py-4 flex items-center gap-3">
+              <img src="{{ app.app_icon.url }}" alt="{{ app.app_name }}" class="w-9 h-9 rounded-lg object-cover">
+              <div>
+                <div class="font-bold text-white">{{ app.app_name }}</div>
+                <div class="text-[11px] text-stone-500">{{ app.package_name }}</div>
+              </div>
+            </td>
+            <td class="px-6 py-4 text-stone-300">{{ app.category }}</td>
+            <td class="px-6 py-4 text-stone-300">v{{ app.version }}</td>
+            <td class="px-6 py-4 font-mono text-amber-400 font-bold">{{ app.formatted_downloads }}</td>
+            <td class="px-6 py-4 text-amber-400">★ {{ app.rating }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Client App Demands Review Table -->
+  <div class="glass-panel rounded-3xl overflow-hidden">
+    <div class="p-6 border-b border-amber-500/15 flex items-center justify-between">
+      <h2 class="text-lg font-display font-bold text-white">Client App Demands (On-Demand Requests)</h2>
+      <span class="text-xs text-stone-400">{{ demands|length }} submissions</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-stone-900/60 text-stone-400 uppercase border-b border-amber-500/10">
+          <tr>
+            <th class="px-6 py-4">Requested App</th>
+            <th class="px-6 py-4">User</th>
+            <th class="px-6 py-4">Platform</th>
+            <th class="px-6 py-4">Timeline</th>
+            <th class="px-6 py-4">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-amber-500/10">
+          {% for d in demands %}
+          <tr class="hover:bg-amber-500/5">
+            <td class="px-6 py-4">
+              <div class="font-bold text-white">{{ d.app_title }}</div>
+              <div class="text-[11px] text-stone-400 truncate max-w-xs">{{ d.requirements }}</div>
+            </td>
+            <td class="px-6 py-4">
+              <div class="text-stone-200">{{ d.user_name }}</div>
+              <div class="text-[11px] text-stone-500">{{ d.email }}</div>
+            </td>
+            <td class="px-6 py-4 text-stone-300">{{ d.platform }}</td>
+            <td class="px-6 py-4 text-stone-300">{{ d.timeline }}</td>
+            <td class="px-6 py-4 font-bold text-amber-400">{{ d.status }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="px-6 py-8 text-center text-stone-500">No demands submitted yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
