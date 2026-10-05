@@ -35,7 +35,7 @@ jobs:
 
       - name: Install Frontend Dependencies
         run: |
-          if [ -f package.json ]; then npm install; fi
+          if [ -f package.json ]; then npm install --legacy-peer-deps; fi
 
       - name: Run Django Migrations
         run: |
