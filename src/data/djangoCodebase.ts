@@ -206,11 +206,6 @@ DATABASES = {
     }
 }
 
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-]
-
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
@@ -243,14 +238,14 @@ from .models import App, AppDemand
 
 GLASS_INPUT_CLASS = (
     "w-full bg-[#18120e]/90 text-amber-50 placeholder-stone-500 text-xs sm:text-sm "
-    "rounded-xl border border-amber-500/20 px-4 py-3 focus:outline-none "
-    "focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all min-h-[44px]"
+    "rounded-xl border border-amber-500/20 px-3 py-2 sm:px-4 sm:py-3 focus:outline-none "
+    "focus:border-amber-500 transition-all min-h-[40px] sm:min-h-[44px]"
 )
 
 GLASS_SELECT_CLASS = (
     "w-full bg-[#18120e] text-amber-50 text-xs sm:text-sm rounded-xl border "
-    "border-amber-500/20 px-4 py-3 focus:outline-none focus:border-amber-500 "
-    "transition-all cursor-pointer min-h-[44px]"
+    "border-amber-500/20 px-3 py-2 sm:px-4 sm:py-3 focus:outline-none focus:border-amber-500 "
+    "transition-all cursor-pointer min-h-[40px] sm:min-h-[44px]"
 )
 
 class AppUploadForm(forms.ModelForm):
@@ -270,9 +265,9 @@ class AppUploadForm(forms.ModelForm):
             'version': forms.TextInput(attrs={'class': GLASS_INPUT_CLASS, 'placeholder': '1.0.0'}),
             'file_size': forms.TextInput(attrs={'class': GLASS_INPUT_CLASS, 'placeholder': '45 MB'}),
             'rating': forms.NumberInput(attrs={'class': GLASS_INPUT_CLASS, 'step': '0.1', 'min': '1.0', 'max': '5.0'}),
-            'description': forms.Textarea(attrs={'class': GLASS_INPUT_CLASS, 'rows': 4}),
-            'is_featured': forms.CheckboxInput(attrs={'class': 'w-5 h-5 accent-amber-500 rounded'}),
-            'is_published': forms.CheckboxInput(attrs={'class': 'w-5 h-5 accent-amber-500 rounded'}),
+            'description': forms.Textarea(attrs={'class': GLASS_INPUT_CLASS, 'rows': 3}),
+            'is_featured': forms.CheckboxInput(attrs={'class': 'w-4 h-4 accent-amber-500 rounded'}),
+            'is_published': forms.CheckboxInput(attrs={'class': 'w-4 h-4 accent-amber-500 rounded'}),
         }
 
 
@@ -285,7 +280,7 @@ class AppDemandForm(forms.ModelForm):
     """
     legal_policy_agreed = forms.BooleanField(
         required=True,
-        label="I confirm that my requested application is completely legal, non-infringing, and contains no theft, cracking, or illicit material."
+        label="I confirm that my requested application contains no illegal, pirated, modded, or theft material."
     )
 
     class Meta:
@@ -305,12 +300,12 @@ class AppDemandForm(forms.ModelForm):
             'category': forms.Select(attrs={'class': GLASS_SELECT_CLASS}),
             'requirements': forms.Textarea(attrs={
                 'class': GLASS_INPUT_CLASS,
-                'rows': 4,
+                'rows': 3,
                 'placeholder': 'Explain your requirements: features, database needs, user authentication, third-party APIs...'
             }),
             'timeline': forms.TextInput(attrs={'class': GLASS_INPUT_CLASS, 'placeholder': 'e.g. 2-4 Weeks'}),
             'budget': forms.TextInput(attrs={'class': GLASS_INPUT_CLASS, 'placeholder': 'e.g. $1,000 - $3,000'}),
-            'legal_policy_agreed': forms.CheckboxInput(attrs={'class': 'w-5 h-5 accent-amber-500 rounded mt-0.5'}),
+            'legal_policy_agreed': forms.CheckboxInput(attrs={'class': 'w-4 h-4 accent-amber-500 rounded mt-0.5'}),
         }
 `
   },
@@ -500,13 +495,13 @@ if settings.DEBUG:
     name: 'base.html',
     path: 'templates/store/base.html',
     language: 'html',
-    description: 'Base responsive template with Hadi88 Apps branding, mobile navigation drawer, and live search bar',
+    description: 'Base responsive template with mobile bottom navigation dock, small fonts/icons, and live AJAX search',
     content: `{% load static %}
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <title>{% block title %}Hadi88 Apps - Find and Ask for Your Dreaming Apps{% endblock %}</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -516,7 +511,7 @@ if settings.DEBUG:
       theme: {
         extend: {
           colors: {
-            amber: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
+            amber: { 300: '#fcd34d', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
             choco: { 950: '#0d0a08', 900: '#140f0c', 850: '#1a130f', 800: '#231b15' }
           }
         }
@@ -527,57 +522,64 @@ if settings.DEBUG:
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0d0a08; color: #f7efe6; }
     h1, h2, h3, .font-display { font-family: 'Syne', sans-serif; }
-    .glass-panel { background: rgba(22, 17, 13, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(245, 158, 11, 0.15); }
+    .glass-panel { background: rgba(22, 17, 13, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(245, 158, 11, 0.15); }
   </style>
 </head>
-<body class="min-h-screen flex flex-col bg-[#0d0a08] text-[#f7efe6]">
+<body class="min-h-screen flex flex-col bg-[#0d0a08] text-[#f7efe6] pb-20 sm:pb-0">
 
-  <!-- Top Header Navigation -->
-  <header class="sticky top-0 z-50 glass-panel border-b border-amber-500/15">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
+  <!-- Top Header Navigation (Mobile-first compact) -->
+  <header class="sticky top-0 z-40 bg-[#120e0b]/95 backdrop-blur-md border-b border-amber-500/15">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-20 flex items-center justify-between gap-2.5">
       
-      <!-- Brand Logo & Tagline -->
-      <a href="{% url 'app_catalog' %}" class="flex items-center gap-3 shrink-0">
-        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-display font-black text-xl shadow-lg shadow-amber-500/20">
+      <!-- Brand Logo -->
+      <a href="{% url 'app_catalog' %}" class="flex items-center gap-2 shrink-0">
+        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-display font-black text-base sm:text-xl shadow-md shadow-amber-500/20">
           H
         </div>
         <div class="flex flex-col">
-          <span class="font-display font-extrabold text-xl sm:text-2xl text-white">
-            Hadi88<span class="text-amber-400 ml-1">Apps</span>
+          <span class="font-display font-extrabold text-base sm:text-2xl text-white leading-none">
+            Hadi88<span class="text-amber-400 ml-0.5">Apps</span>
           </span>
-          <span class="hidden lg:block text-[10px] text-amber-300/80">Find and ask for your dreaming apps</span>
+          <span class="hidden sm:block text-[10px] text-amber-300/80 font-medium">Find and ask for your dreaming apps</span>
         </div>
       </a>
 
       <!-- Live Search Bar -->
-      <div class="relative flex-1 max-w-md mx-2">
+      <div class="relative flex-1 max-w-xs sm:max-w-md mx-2">
         <input 
           type="text" 
           id="live-search-input"
-          placeholder="Search apps, games, tools..." 
-          class="w-full bg-[#18120e]/90 text-xs sm:text-sm text-amber-100 placeholder-stone-400 rounded-full pl-10 pr-4 py-2.5 border border-amber-500/20 focus:outline-none focus:border-amber-400 min-h-[44px]"
+          placeholder="Search apps..." 
+          class="w-full bg-[#18120e]/95 text-xs text-amber-100 placeholder-stone-500 rounded-full pl-8 pr-3 py-1.5 sm:py-2 border border-amber-500/20 focus:outline-none focus:border-amber-400"
         />
-        <div id="live-search-results" class="hidden absolute top-full mt-2 w-full glass-panel rounded-2xl p-2 shadow-2xl z-50 max-h-80 overflow-y-auto"></div>
+        <div id="live-search-results" class="hidden absolute top-full mt-1.5 w-full glass-panel rounded-xl p-1.5 shadow-2xl z-50 max-h-72 overflow-y-auto"></div>
       </div>
 
-      <!-- Navigation Links -->
-      <nav class="flex items-center gap-2">
-        <a href="{% url 'contact_admin_demand' %}" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30 transition-all min-h-[44px] flex items-center gap-1.5">
+      <!-- Desktop Navigation Actions -->
+      <nav class="hidden sm:flex items-center gap-2">
+        <a href="{% url 'contact_admin_demand' %}" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black shadow-md transition-all flex items-center gap-1">
           <span>Ask for App</span>
         </a>
-        <a href="{% url 'admin_dashboard' %}" class="hidden sm:inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-semibold glass-panel text-stone-300 hover:text-white min-h-[44px]">
-          Admin Panel
+        <a href="{% url 'admin_dashboard' %}" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold glass-panel text-stone-300 hover:text-white">
+          Admin
         </a>
       </nav>
 
     </div>
   </header>
 
+  <!-- Taglines Announcement Strip (Micro font on mobile) -->
+  <div class="bg-[#160f0b]/90 border-b border-amber-500/10 py-1 px-3 text-center text-[9px] sm:text-xs text-stone-300">
+    <span class="text-amber-300 font-bold">"Find and ask for your dreaming apps"</span>
+    <span class="text-stone-500 mx-1">·</span>
+    <span>"We are building app on your demand"</span>
+  </div>
+
   <!-- Flash Messages -->
   {% if messages %}
-  <div class="max-w-7xl mx-auto px-4 mt-4 w-full">
+  <div class="max-w-7xl mx-auto px-3 mt-3 w-full">
     {% for message in messages %}
-    <div class="p-4 rounded-xl border bg-emerald-950/40 border-emerald-500/30 text-emerald-300 text-xs sm:text-sm">
+    <div class="p-2.5 rounded-xl border bg-emerald-950/40 border-emerald-500/30 text-emerald-300 text-xs">
       {{ message }}
     </div>
     {% endfor %}
@@ -589,17 +591,360 @@ if settings.DEBUG:
     {% block content %}{% endblock %}
   </main>
 
+  <!-- Mobile Sticky Bottom Navigation Dock (Google Play Store Style) -->
+  <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#120e0b]/95 backdrop-blur-xl border-t border-amber-500/20 px-3 py-1.5 flex items-center justify-around">
+    <a href="{% url 'app_catalog' %}" class="flex flex-col items-center text-amber-400 text-[10px] font-bold">
+      <span class="text-sm">🏪</span>
+      <span>Store</span>
+    </a>
+    <a href="{% url 'contact_admin_demand' %}" class="flex flex-col items-center text-amber-300 text-[10px] font-bold">
+      <span class="text-sm">💡</span>
+      <span>Ask App</span>
+    </a>
+    <a href="{% url 'admin_dashboard' %}" class="flex flex-col items-center text-stone-400 hover:text-white text-[10px]">
+      <span class="text-sm">🛠️</span>
+      <span>Admin</span>
+    </a>
+  </nav>
+
   <!-- Footer -->
-  <footer class="mt-20 border-t border-amber-500/15 bg-[#0a0705] py-10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-stone-400 space-y-2">
-      <div class="font-display font-bold text-white text-base">Hadi88 Apps</div>
-      <p>"Find and ask for your dreaming apps" · "We are building app on your demand"</p>
-      <p class="text-[11px] text-stone-600">Strict safety: We never develop any illegal, theft, or piracy category software.</p>
+  <footer class="mt-12 sm:mt-20 border-t border-amber-500/15 bg-[#0a0705] py-8">
+    <div class="max-w-7xl mx-auto px-4 text-center text-xs text-stone-400 space-y-1.5">
+      <div class="font-display font-bold text-white text-sm sm:text-base">Hadi88 Apps</div>
+      <p class="text-[10px] sm:text-xs">"Find and ask for your dreaming apps" · "We are building app on your demand"</p>
+      <p class="text-[9px] sm:text-[11px] text-stone-500">Strict safety: We never develop any illegal, theft, or piracy category software.</p>
     </div>
   </footer>
 
+  <!-- AJAX Live Search Script -->
+  <script>
+    const searchInput = document.getElementById('live-search-input');
+    const searchResults = document.getElementById('live-search-results');
+
+    if (searchInput && searchResults) {
+      let debounceTimer;
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        const query = e.target.value.trim();
+        if (query.length < 1) {
+          searchResults.classList.add('hidden');
+          return;
+        }
+        debounceTimer = setTimeout(() => {
+          fetch('/api/search/?term=' + encodeURIComponent(query))
+            .then(res => res.json())
+            .then(data => {
+              if (data.results && data.results.length > 0) {
+                searchResults.innerHTML = data.results.map(app => \`
+                  <a href="\${app.detail_url}" class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-amber-500/10 block">
+                    <img src="\${app.icon_url}" class="w-7 h-7 rounded-lg object-cover bg-stone-900" />
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs font-bold text-white truncate">\${app.name}</div>
+                      <div class="text-[10px] text-stone-400 truncate">\${app.category} · \${app.file_size}</div>
+                    </div>
+                    <div class="text-amber-400 text-xs font-bold">★ \${app.rating}</div>
+                  </a>
+                \`).join('');
+                searchResults.classList.remove('hidden');
+              } else {
+                searchResults.innerHTML = '<div class="p-2 text-xs text-stone-400 text-center">No apps found.</div>';
+                searchResults.classList.remove('hidden');
+              }
+            });
+        }, 250);
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+          searchResults.classList.add('hidden');
+        }
+      });
+    }
+  </script>
 </body>
 </html>
+`
+  },
+  {
+    name: 'index.html',
+    path: 'templates/store/index.html',
+    language: 'html',
+    description: 'Homepage template featuring exact 18-app pagination, category tabs, and hero spotlight with Hadi88 Apps taglines',
+    content: `{% extends 'store/base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-10">
+
+  <!-- Hero Spotlight -->
+  {% if featured_apps %}
+  <section class="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-amber-500/20 relative overflow-hidden">
+    {% with hero=featured_apps.0 %}
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8 items-center">
+      <div class="lg:col-span-7 space-y-2 sm:space-y-4">
+        <div class="text-[10px] sm:text-xs font-bold text-amber-400 uppercase tracking-wide">
+          Hadi88 Spotlight · "Find and ask for your dreaming apps"
+        </div>
+        <h1 class="text-xl sm:text-4xl font-display font-extrabold text-white leading-tight">
+          {{ hero.app_name }}
+        </h1>
+        <p class="text-[11px] sm:text-sm text-stone-300 line-clamp-2 sm:line-clamp-3 leading-relaxed">
+          {{ hero.description }}
+        </p>
+        <div class="flex items-center gap-2 pt-1">
+          <a href="{{ hero.get_absolute_url }}" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-md">
+            View & Install
+          </a>
+          <a href="{% url 'contact_admin_demand' %}" class="px-3.5 py-2 rounded-xl glass-panel text-amber-300 text-xs font-semibold">
+            Ask for App
+          </a>
+        </div>
+      </div>
+      <div class="lg:col-span-5">
+        {% if hero.banner_image %}
+        <img src="{{ hero.banner_image.url }}" alt="{{ hero.app_name }}" class="w-full h-36 sm:h-64 object-cover rounded-xl border border-amber-500/20">
+        {% endif %}
+      </div>
+    </div>
+    {% endwith %}
+  </section>
+  {% endif %}
+
+  <!-- Categories Filter -->
+  <section class="space-y-2 sm:space-y-3">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xs sm:text-base font-display font-bold text-white">Categories</h2>
+      <span class="text-[10px] sm:text-xs text-stone-400">{{ total_apps_count }} apps available</span>
+    </div>
+    <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1.5 scrollbar-none">
+      {% for cat in categories %}
+      <a href="?category={{ cat }}" class="whitespace-nowrap px-2.5 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold {% if current_category == cat %}bg-amber-500 text-black font-bold{% else %}glass-panel text-stone-300 hover:text-white{% endif %}">
+        {{ cat }}
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- 18 Apps Per Page Grid (Responsive 2-col on mobile with small fonts & small icons) -->
+  <section class="space-y-4">
+    <div class="flex items-center justify-between border-b border-amber-500/10 pb-2">
+      <div class="flex items-center gap-1.5">
+        <h2 class="text-sm sm:text-xl font-display font-bold text-white">
+          {% if current_category != 'All' %}{{ current_category }} Apps{% else %}All Applications{% endif %}
+        </h2>
+        <span class="text-[9px] sm:text-[11px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">18 / page</span>
+      </div>
+      <div class="text-[10px] sm:text-xs text-stone-400">
+        Showing {{ apps|length }} of {{ total_apps_count }}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3.5">
+      {% for app in apps %}
+      <div class="glass-panel rounded-xl sm:rounded-2xl p-2 sm:p-3.5 flex flex-col justify-between hover:border-amber-400/40 transition-all">
+        <div>
+          <a href="{{ app.get_absolute_url }}">
+            <img src="{{ app.app_icon.url }}" alt="{{ app.app_name }}" class="w-full aspect-square rounded-lg sm:rounded-xl object-cover mb-2 bg-stone-900 border border-amber-500/15">
+          </a>
+          <a href="{{ app.get_absolute_url }}" class="font-bold text-[11px] sm:text-xs text-white truncate block hover:text-amber-400">{{ app.app_name }}</a>
+          <p class="text-[9px] sm:text-[11px] text-stone-400 truncate mt-0.5">{{ app.developer_name }}</p>
+          <div class="flex items-center justify-between text-[8px] sm:text-[10px] text-stone-400 mt-1">
+            <span class="text-amber-400 font-bold">★ {{ app.rating }}</span>
+            <span class="font-mono">{{ app.file_size }}</span>
+          </div>
+        </div>
+        <div class="pt-2 mt-2 border-t border-amber-500/10">
+          <a href="{% url 'download_apk' app.package_name %}" class="w-full py-1.5 px-2 rounded-lg bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black text-[10px] sm:text-xs font-bold text-center block transition-all min-h-[32px] flex items-center justify-center">
+            Install (APK)
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Exact 18 Items Pagination Controls -->
+    {% if is_paginated %}
+    <div class="flex items-center justify-between glass-panel p-2.5 sm:p-4 rounded-xl text-xs">
+      <div>
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if current_category != 'All' %}&category={{ current_category }}{% endif %}" class="px-3 py-1.5 glass-panel rounded-lg text-stone-300 text-xs">Previous</a>
+        {% endif %}
+      </div>
+      <span class="text-[10px] sm:text-xs text-stone-400">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+      <div>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if current_category != 'All' %}&category={{ current_category }}{% endif %}" class="px-3 py-1.5 glass-panel rounded-lg text-stone-300 text-xs">Next</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}
+`
+  },
+  {
+    name: 'app_detail.html',
+    path: 'templates/store/app_detail.html',
+    language: 'html',
+    description: 'Detailed mobile app view with responsive layout, 4-col mini specs, verified APK download, and related apps',
+    content: `{% extends 'store/base.html' %}
+
+{% block title %}{{ app.app_name }} (v{{ app.version }}) - Hadi88 Apps{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
+
+  <!-- Breadcrumbs & Back -->
+  <div class="flex items-center justify-between text-xs">
+    <a href="{% url 'app_catalog' %}" class="glass-panel px-3 py-1.5 rounded-lg text-stone-300 hover:text-amber-400 inline-flex items-center gap-1">
+      ← Back to Store
+    </a>
+    <span class="text-[11px] text-stone-400">Hadi88 Verified Package</span>
+  </div>
+
+  <!-- Header Identity -->
+  <div class="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+    <div class="flex items-center gap-3">
+      <img src="{{ app.app_icon.url }}" alt="{{ app.app_name }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl object-cover bg-stone-900 border border-amber-500/30 shadow-md shrink-0">
+      <div>
+        <h1 class="text-base sm:text-2xl font-display font-extrabold text-white">{{ app.app_name }}</h1>
+        <div class="text-xs text-amber-400 font-semibold">{{ app.developer_name }}</div>
+        <div class="text-[10px] text-stone-400 mt-0.5">{{ app.category }} · v{{ app.version }} · {{ app.file_size }}</div>
+      </div>
+    </div>
+
+    <a href="{% url 'download_apk' app.package_name %}" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm text-center shadow-md">
+      Download APK ({{ app.file_size }})
+    </a>
+  </div>
+
+  <!-- Quick Specs Grid (Compact 4-column) -->
+  <div class="grid grid-cols-4 gap-1.5 sm:gap-2 text-center">
+    <div class="p-2 rounded-xl bg-[#1b140f] border border-amber-500/10">
+      <div class="text-[9px] text-stone-400">Rating</div>
+      <div class="text-xs sm:text-sm font-bold text-amber-400">★ {{ app.rating }}</div>
+    </div>
+    <div class="p-2 rounded-xl bg-[#1b140f] border border-amber-500/10">
+      <div class="text-[9px] text-stone-400">Downloads</div>
+      <div class="text-xs sm:text-sm font-bold text-white font-mono">{{ app.downloads_count }}</div>
+    </div>
+    <div class="p-2 rounded-xl bg-[#1b140f] border border-amber-500/10">
+      <div class="text-[9px] text-stone-400">Size</div>
+      <div class="text-xs sm:text-sm font-bold text-white font-mono">{{ app.file_size }}</div>
+    </div>
+    <div class="p-2 rounded-xl bg-[#1b140f] border border-amber-500/10">
+      <div class="text-[9px] text-stone-400">Platform</div>
+      <div class="text-xs sm:text-sm font-bold text-stone-300 font-mono">Android</div>
+    </div>
+  </div>
+
+  <!-- Screenshots -->
+  {% if app.banner_image %}
+  <div class="rounded-xl overflow-hidden border border-amber-500/20 bg-stone-950">
+    <img src="{{ app.banner_image.url }}" alt="{{ app.app_name }} banner" class="w-full h-40 sm:h-64 object-cover">
+  </div>
+  {% endif %}
+
+  <!-- Description -->
+  <div class="glass-panel rounded-2xl p-4 sm:p-6 space-y-2 border border-amber-500/15">
+    <h2 class="text-xs sm:text-sm font-display font-bold text-white">About this app</h2>
+    <p class="text-xs text-stone-300 leading-relaxed whitespace-pre-line">{{ app.description }}</p>
+  </div>
+
+</div>
+{% endblock %}
+`
+  },
+  {
+    name: 'admin_dashboard.html',
+    path: 'templates/store/admin_dashboard.html',
+    language: 'html',
+    description: 'Administrative dashboard template with mobile app card view, desktop table, and inbound demands review',
+    content: `{% extends 'store/base.html' %}
+
+{% block title %}Admin Dashboard - Hadi88 Apps{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
+
+  <!-- Header -->
+  <div class="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div>
+      <div class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Hadi88 Administration</div>
+      <h1 class="text-lg sm:text-2xl font-display font-extrabold text-white">Store Control Dashboard</h1>
+    </div>
+  </div>
+
+  <!-- KPI Stats Grid (Compact on mobile) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Downloads</span>
+      <div class="text-lg sm:text-2xl font-bold text-amber-400 font-mono">{{ stats.total_downloads }}</div>
+    </div>
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Apps</span>
+      <div class="text-lg sm:text-2xl font-bold text-white font-mono">{{ stats.total_apps }}</div>
+    </div>
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Demands</span>
+      <div class="text-lg sm:text-2xl font-bold text-amber-400 font-mono">{{ stats.pending_demands }} pending</div>
+    </div>
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Rating</span>
+      <div class="text-lg sm:text-2xl font-bold text-white font-mono">★ {{ stats.avg_rating }}</div>
+    </div>
+  </div>
+
+  <!-- Apps Inventory (Mobile Card List on small screens, Table on desktop) -->
+  <div class="space-y-2">
+    <h2 class="text-xs sm:text-sm font-bold text-white">Application Inventory</h2>
+
+    <!-- Mobile App Cards (sm:hidden) -->
+    <div class="sm:hidden space-y-2">
+      {% for app in apps %}
+      <div class="glass-panel rounded-xl p-3 border border-amber-500/15 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <img src="{{ app.app_icon.url }}" alt="{{ app.app_name }}" class="w-9 h-9 rounded-lg object-cover bg-stone-900 shrink-0">
+          <div class="min-w-0">
+            <div class="text-xs font-bold text-white truncate">{{ app.app_name }}</div>
+            <div class="text-[10px] text-stone-400">{{ app.category }} · v{{ app.version }}</div>
+            <div class="text-[9px] text-amber-400">★ {{ app.rating }} · {{ app.downloads_count }} dl</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Desktop Table (hidden sm:block) -->
+    <div class="hidden sm:block glass-panel rounded-2xl overflow-hidden border border-amber-500/20">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-[#18120e] text-stone-400 border-b border-amber-500/15">
+          <tr>
+            <th class="p-3">Application</th>
+            <th class="p-3">Category</th>
+            <th class="p-3">Version</th>
+            <th class="p-3">Downloads</th>
+            <th class="p-3">Rating</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-amber-500/10">
+          {% for app in apps %}
+          <tr class="hover:bg-amber-500/5">
+            <td class="p-3 font-bold text-white">{{ app.app_name }}</td>
+            <td class="p-3 text-stone-300">{{ app.category }}</td>
+            <td class="p-3 font-mono text-stone-300">v{{ app.version }}</td>
+            <td class="p-3 font-mono text-amber-400">{{ app.downloads_count }}</td>
+            <td class="p-3 font-bold text-amber-400">★ {{ app.rating }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
 `
   },
   {
@@ -612,201 +957,95 @@ if settings.DEBUG:
 {% block title %}Ask for Your Dreaming App - Hadi88 Apps{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-6">
+<div class="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4">
 
   <!-- Header -->
-  <div class="glass-panel rounded-3xl p-6 sm:p-8 space-y-2 text-center border border-amber-500/20">
-    <div class="text-xs font-bold text-amber-400 uppercase tracking-wider">Hadi88 Apps On-Demand Engineering</div>
-    <h1 class="text-2xl sm:text-4xl font-display font-extrabold text-white">Find and Ask for Your Dreaming Apps</h1>
-    <p class="text-xs sm:text-sm text-amber-200/80 font-medium">"We are building app on your demand"</p>
+  <div class="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-1 text-center border border-amber-500/20">
+    <div class="text-[10px] sm:text-xs font-bold text-amber-400 uppercase tracking-wider">Hadi88 Apps On-Demand Engineering</div>
+    <h1 class="text-lg sm:text-2xl font-display font-extrabold text-white">Find and Ask for Your Dreaming Apps</h1>
+    <p class="text-xs text-amber-200/80 font-medium">"We are building app on your demand"</p>
   </div>
 
-  <!-- STRICT POLICY WARNING BOX -->
-  <div class="rounded-2xl bg-red-950/30 border border-red-500/40 p-5 space-y-2 text-xs">
-    <div class="font-bold text-red-300 uppercase tracking-wide text-xs flex items-center gap-2">
-      <span>⚠️ Strict Policy & Legal Notice</span>
+  <!-- STRICT POLICY WARNING BOX (Mandatory User Requirement) -->
+  <div class="rounded-xl bg-red-950/30 border border-red-500/40 p-3 space-y-1 text-xs">
+    <div class="font-bold text-red-300 uppercase tracking-wide text-[10px] sm:text-xs flex items-center gap-1.5">
+      <span>⚠️ Strict Policy & Safety Warning</span>
     </div>
-    <p class="text-red-200/90 leading-relaxed font-medium">
+    <p class="text-red-200/90 leading-relaxed font-medium text-[10px] sm:text-xs">
       <strong>We do not build any illegal, pirated, modded, gambling, adult, hacking, or theft category applications.</strong>
-      In such cases, we will <strong>never reply to spam emails, fraudulent messages, or illicit solicitations</strong>. Our decision is final.
+      In such cases, we will <strong>never reply to spam emails, fraudulent messages, or illicit solicitations</strong>. Our discussion and decision is final.
     </p>
   </div>
 
   <!-- Demand Submission Form -->
-  <div class="glass-panel rounded-3xl p-6 sm:p-8 border border-amber-500/20">
-    <form method="POST" class="space-y-4">
+  <div class="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-amber-500/20">
+    <form method="POST" class="space-y-3">
       {% csrf_token %}
       
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <div>
-          <label class="block text-xs font-semibold text-stone-300 mb-1">Your Full Name *</label>
+          <label class="block text-[10px] font-semibold text-stone-300 mb-0.5">Your Full Name *</label>
           {{ form.user_name }}
         </div>
         <div>
-          <label class="block text-xs font-semibold text-stone-300 mb-1">Email Address *</label>
+          <label class="block text-[10px] font-semibold text-stone-300 mb-0.5">Email Address *</label>
           {{ form.email }}
         </div>
         <div>
-          <label class="block text-xs font-semibold text-stone-300 mb-1">Contact Method</label>
+          <label class="block text-[10px] font-semibold text-stone-300 mb-0.5">Contact Channel</label>
           {{ form.contact_method }}
         </div>
         <div>
-          <label class="block text-xs font-semibold text-stone-300 mb-1">WhatsApp / Phone / Username</label>
+          <label class="block text-[10px] font-semibold text-stone-300 mb-0.5">WhatsApp / Phone / Telegram</label>
           {{ form.contact_handle }}
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-amber-500/10">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-amber-500/10">
         <div>
-          <label class="block text-xs font-semibold text-stone-300 mb-1">Dreaming App Name *</label>
+          <label class="block text-[10px] font-semibold text-stone-300 mb-0.5">Dreaming App Name *</label>
           {{ form.app_title }}
         </div>
         <div>
-          <label class="block text-xs font-semibold text-stone-300 mb-1">Target Platform</label>
+          <label class="block text-[10px] font-semibold text-stone-300 mb-0.5">Platform</label>
           {{ form.platform }}
         </div>
         <div>
-          <label class="block text-xs font-semibold text-stone-300 mb-1">Category</label>
+          <label class="block text-[10px] font-semibold text-stone-300 mb-0.5">Category</label>
           {{ form.category }}
         </div>
       </div>
 
       <div>
-        <label class="block text-xs font-semibold text-stone-300 mb-1">Detailed Requirements & Features *</label>
+        <label class="block text-[10px] font-semibold text-stone-300 mb-0.5">Detailed Requirements & Features *</label>
         {{ form.requirements }}
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-2.5">
         <div>
-          <label class="block text-xs font-semibold text-stone-300 mb-1">Desired Timeline</label>
+          <label class="block text-[10px] font-semibold text-stone-300 mb-0.5">Timeline</label>
           {{ form.timeline }}
         </div>
         <div>
-          <label class="block text-xs font-semibold text-stone-300 mb-1">Budget Range</label>
+          <label class="block text-[10px] font-semibold text-stone-300 mb-0.5">Budget</label>
           {{ form.budget }}
         </div>
       </div>
 
-      <div class="p-4 rounded-xl bg-[#1b140f] border border-amber-500/20 flex items-start gap-3">
+      <div class="p-2.5 rounded-xl bg-[#1b140f] border border-amber-500/20 flex items-start gap-2">
         {{ form.legal_policy_agreed }}
-        <label class="text-xs text-stone-300 leading-relaxed cursor-pointer">
+        <label class="text-[10px] sm:text-xs text-stone-300 leading-tight cursor-pointer">
           I confirm that my proposed app contains no illegal, pirated, or theft material, and I accept Hadi88 Apps safety standards.
         </label>
       </div>
 
-      <div class="pt-3 flex justify-end">
-        <button type="submit" class="px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-sm shadow-xl shadow-amber-500/25">
+      <div class="pt-2 flex justify-end">
+        <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs shadow-md">
           Submit App Demand to Admin
         </button>
       </div>
     </form>
   </div>
-
-</div>
-{% endblock %}
-`
-  },
-  {
-    name: 'index.html',
-    path: 'templates/store/index.html',
-    language: 'html',
-    description: 'Homepage template featuring 18-app pagination, category tabs, and hero spotlight with Hadi88 Apps taglines',
-    content: `{% extends 'store/base.html' %}
-
-{% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-
-  <!-- Hero Spotlight -->
-  {% if featured_apps %}
-  <section class="glass-panel rounded-3xl p-6 sm:p-8 border border-amber-500/20 relative overflow-hidden">
-    {% with hero=featured_apps.0 %}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-      <div class="lg:col-span-7 space-y-4">
-        <div class="text-xs font-bold text-amber-400 uppercase tracking-wide">
-          Hadi88 Apps · "Find and ask for your dreaming apps"
-        </div>
-        <h1 class="text-3xl sm:text-5xl font-display font-extrabold text-white leading-tight">
-          {{ hero.app_name }}
-        </h1>
-        <p class="text-xs sm:text-sm text-stone-300 line-clamp-3 leading-relaxed">
-          {{ hero.description }}
-        </p>
-        <div class="flex items-center gap-3 pt-2">
-          <a href="{{ hero.get_absolute_url }}" class="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs sm:text-sm shadow-xl">
-            View Details & Install
-          </a>
-          <a href="{% url 'contact_admin_demand' %}" class="px-5 py-3 rounded-xl glass-panel text-amber-300 text-xs sm:text-sm font-semibold">
-            Ask for Custom App
-          </a>
-        </div>
-      </div>
-      <div class="lg:col-span-5">
-        <img src="{{ hero.banner_image.url }}" alt="{{ hero.app_name }}" class="w-full h-60 sm:h-72 object-cover rounded-2xl border border-amber-500/20">
-      </div>
-    </div>
-    {% endwith %}
-  </section>
-  {% endif %}
-
-  <!-- Categories -->
-  <section class="space-y-4">
-    <div class="flex items-center justify-between">
-      <h2 class="text-lg sm:text-xl font-display font-bold text-white">Categories</h2>
-      <span class="text-xs text-stone-400">{{ total_apps_count }} apps available</span>
-    </div>
-    <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-      {% for cat in categories %}
-      <a href="?category={{ cat }}" class="whitespace-nowrap px-4 py-2 rounded-xl text-xs font-semibold {% if current_category == cat %}bg-amber-500 text-black{% else %}glass-panel text-stone-300{% endif %}">
-        {{ cat }}
-      </a>
-      {% endfor %}
-    </div>
-  </section>
-
-  <!-- 18 Apps Per Page Grid -->
-  <section class="space-y-6">
-    <div class="flex items-center justify-between border-b border-amber-500/10 pb-3">
-      <h2 class="text-xl font-display font-bold text-white">
-        {% if current_category != 'All' %}{{ current_category }} Apps{% else %}All Applications{% endif %}
-      </h2>
-      <span class="text-xs font-mono text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg">18 Apps Per Page</span>
-    </div>
-
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-      {% for app in apps %}
-      <div class="glass-panel rounded-2xl p-4 flex flex-col justify-between">
-        <div>
-          <img src="{{ app.app_icon.url }}" alt="{{ app.app_name }}" class="w-full aspect-square rounded-xl object-cover mb-3">
-          <h3 class="font-bold text-xs sm:text-sm text-white truncate">{{ app.app_name }}</h3>
-          <p class="text-[11px] text-stone-400 truncate">{{ app.developer_name }}</p>
-          <div class="text-[11px] text-amber-400 mt-1">★ {{ app.rating }} · {{ app.file_size }}</div>
-        </div>
-        <div class="pt-3 mt-3 border-t border-amber-500/10">
-          <a href="{% url 'download_apk' app.package_name %}" class="w-full py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black text-xs font-bold text-center block">
-            Install (APK)
-          </a>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- Pagination Controls -->
-    {% if is_paginated %}
-    <div class="flex items-center justify-between glass-panel p-4 rounded-2xl text-xs">
-      <div>
-        {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 glass-panel rounded-xl text-stone-300">Previous</a>
-        {% endif %}
-      </div>
-      <span class="text-stone-400">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
-      <div>
-        {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 glass-panel rounded-xl text-stone-300">Next</a>
-        {% endif %}
-      </div>
-    </div>
-    {% endif %}
-  </section>
 
 </div>
 {% endblock %}
@@ -836,6 +1075,7 @@ whitenoise>=6.6.0
 A modern, responsive Django web marketplace replicating the Google Play Store experience with dark chocolate brown & amber glassmorphic design.
 
 ## Features
+- **Mobile First Responsive**: Compact fonts, micro icons, and sticky mobile dock navigation.
 - **18 Apps Per Page**: Strict pagination limit of exactly 18 items per page.
 - **Client App Demands**: Dedicated on-demand app request pipeline connecting users with Hadi88 engineers.
 - **Strict Compliance Policy**: Zero tolerance for illegal, theft, pirated, or cracked software categories.

@@ -15,10 +15,11 @@ import { AppDetailModal } from './components/AppDetailModal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DjangoCodeViewer } from './components/DjangoCodeViewer';
 import { ContactAdminModal } from './components/ContactAdminModal';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { downloadAppApk } from './utils/apkGenerator';
 import { 
   Sparkles, ShieldAlert, Layers, ShieldCheck, 
-  MessageSquarePlus, Smartphone 
+  MessageSquarePlus, Smartphone, LayoutGrid, List 
 } from 'lucide-react';
 
 const CATEGORIES: AppCategory[] = [
@@ -105,6 +106,7 @@ export default function App() {
   const [selectedApp, setSelectedApp] = useState<AppModel | null>(null);
   const [isDemandModalOpen, setIsDemandModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [mobileLayout, setMobileLayout] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     try {
@@ -227,15 +229,15 @@ export default function App() {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50 glass-panel border border-amber-500/40 text-amber-200 text-[11px] sm:text-xs font-semibold px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl shadow-xl flex items-center gap-2 animate-bounce max-w-xs sm:max-w-sm">
+        <div className="fixed bottom-16 sm:bottom-6 right-3 sm:right-6 z-50 glass-panel border border-amber-500/40 text-amber-200 text-[10px] sm:text-xs font-semibold px-3 py-2 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl shadow-xl flex items-center gap-2 animate-bounce max-w-xs sm:max-w-sm">
           <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Brand Sub-Header Banner with Small Responsive Fonts */}
-      <div className="relative z-10 bg-[#160f0b]/80 border-b border-amber-500/10 py-1.5 sm:py-2.5 px-3 sm:px-4 text-center">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-6 text-[10px] sm:text-xs">
+      <div className="relative z-10 bg-[#160f0b]/90 border-b border-amber-500/10 py-1 sm:py-2 px-3 sm:px-4 text-center">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-4 text-[9px] sm:text-xs">
           <span className="text-amber-300 font-bold tracking-tight">
             "Find and ask for your dreaming apps"
           </span>
@@ -245,19 +247,19 @@ export default function App() {
           </span>
           <button
             onClick={() => setIsDemandModalOpen(true)}
-            className="text-amber-400 hover:text-amber-300 font-bold underline decoration-amber-500/40 underline-offset-2 cursor-pointer text-[10px] sm:text-xs"
+            className="text-amber-400 hover:text-amber-300 font-bold underline decoration-amber-500/40 underline-offset-2 cursor-pointer text-[9px] sm:text-xs ml-1"
           >
-            Submit your app requirement →
+            Submit app requirement →
           </button>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-10">
+      {/* Main Content Area (pb-24 on mobile so bottom tab bar never blocks content) */}
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-8 space-y-4 sm:space-y-8 pb-24 sm:pb-12">
         
         {/* VIEW 1: Storefront Catalog */}
         {activeView === 'store' && (
-          <div className="space-y-6 sm:space-y-10">
+          <div className="space-y-4 sm:space-y-8">
             {/* Top Trending / Hero Carousel */}
             <HeroCarousel
               featuredApps={featuredApps}
@@ -266,28 +268,28 @@ export default function App() {
               onOpenDemandModal={() => setIsDemandModalOpen(true)}
             />
 
-            {/* Custom On-Demand App Callout Banner (Compact for Mobile) */}
-            <div className="glass-panel rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 border border-amber-500/25 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3.5 sm:gap-5 bg-gradient-to-r from-[#18110b] via-[#1f150e] to-[#18110b]">
+            {/* Custom On-Demand App Callout Banner (Compact for Mobile screens) */}
+            <div className="glass-panel rounded-xl sm:rounded-3xl p-3 sm:p-6 border border-amber-500/20 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4 bg-gradient-to-r from-[#18110b] via-[#1f150e] to-[#18110b]">
               <div className="space-y-1 max-w-2xl">
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-amber-400 uppercase tracking-wider">
-                  <Smartphone className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-1.5 text-[9px] sm:text-xs font-bold text-amber-400 uppercase tracking-wider">
+                  <Smartphone className="w-3 h-3 text-amber-400" />
                   <span>Hadi88 Apps On-Demand Service</span>
                 </div>
-                <h2 className="text-base sm:text-2xl font-display font-extrabold text-white">
+                <h2 className="text-sm sm:text-xl font-display font-extrabold text-white">
                   Have a Unique Application Idea in Mind?
                 </h2>
-                <p className="text-[11px] sm:text-sm text-stone-300 leading-relaxed">
-                  Tell our dedicated software engineers what features, APIs, and workflows you envision. We architect, build, and deliver high-performance Android, iOS, and Web applications.
+                <p className="text-[10px] sm:text-xs text-stone-300 leading-relaxed">
+                  Tell our dedicated engineers what features, APIs, and workflows you envision. We build Android, iOS, and Web applications on demand.
                 </p>
-                <div className="pt-0.5 flex items-center gap-1.5 text-[9px] sm:text-[11px] text-stone-400">
-                  <ShieldAlert className="w-3 h-3 text-amber-400/80 shrink-0" />
+                <div className="pt-0.5 flex items-center gap-1 text-[8px] sm:text-[10px] text-stone-400">
+                  <ShieldAlert className="w-2.5 h-2.5 text-amber-400/80 shrink-0" />
                   <span>Strict policy: We never develop any illegal, modded, gambling, or theft category software.</span>
                 </div>
               </div>
 
               <button
                 onClick={() => setIsDemandModalOpen(true)}
-                className="w-full lg:w-auto px-4 sm:px-6 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/25 transition-all hover:scale-102 shrink-0"
+                className="w-full lg:w-auto px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 transition-all shrink-0"
               >
                 <MessageSquarePlus className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>Ask for App</span>
@@ -302,38 +304,74 @@ export default function App() {
               categoryCounts={categoryCounts}
             />
 
-            {/* App Grid Header with 18-items indicator */}
-            <section className="space-y-4 sm:space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-amber-500/10 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-2xl font-display font-bold text-white tracking-tight">
-                    {selectedCategory === 'All' ? 'All Applications' : `${selectedCategory} Applications`}
+            {/* App Grid Header with 18-items indicator & Mobile View Toggle (Grid / List) */}
+            <section className="space-y-3 sm:space-y-5">
+              <div className="flex items-center justify-between gap-1.5 border-b border-amber-500/10 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-sm sm:text-xl font-display font-bold text-white tracking-tight">
+                    {selectedCategory === 'All' ? 'All Applications' : `${selectedCategory} Apps`}
                   </h2>
-                  <span className="text-[10px] sm:text-xs font-mono text-amber-400/90 font-bold bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
+                  <span className="text-[9px] sm:text-[11px] font-mono text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
                     18 / page
                   </span>
                 </div>
-                <div className="text-[10px] sm:text-xs text-stone-400">
-                  Showing {paginatedApps.length} of {filteredApps.length} applications
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] sm:text-xs text-stone-400 hidden xs:inline">
+                    Showing {paginatedApps.length} of {filteredApps.length}
+                  </span>
+
+                  {/* Mobile Layout Switcher: Grid vs List (Google Play Mobile Style) */}
+                  <div className="flex items-center glass-panel rounded-lg p-0.5 border border-amber-500/20 sm:hidden">
+                    <button
+                      onClick={() => setMobileLayout('grid')}
+                      className={`p-1 rounded ${mobileLayout === 'grid' ? 'bg-amber-500 text-black' : 'text-stone-400'}`}
+                      aria-label="Grid View"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setMobileLayout('list')}
+                      className={`p-1 rounded ${mobileLayout === 'list' ? 'bg-amber-500 text-black' : 'text-stone-400'}`}
+                      aria-label="List View"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Grid: 2 cols on mobile with compact cards, 3 on tablet, 6 on desktop */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
-                {paginatedApps.map((app) => (
-                  <AppCard
-                    key={app.id}
-                    app={app}
-                    onSelectApp={(a) => setSelectedApp(a)}
-                    onDownloadApk={handleDownloadApk}
-                  />
-                ))}
-              </div>
+              {/* App Cards Container: List mode on mobile when chosen, else sleek responsive Grid */}
+              {mobileLayout === 'list' ? (
+                <div className="space-y-2 sm:hidden">
+                  {paginatedApps.map((app) => (
+                    <AppCard
+                      key={app.id}
+                      app={app}
+                      layout="list"
+                      onSelectApp={(a) => setSelectedApp(a)}
+                      onDownloadApk={handleDownloadApk}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3.5">
+                  {paginatedApps.map((app) => (
+                    <AppCard
+                      key={app.id}
+                      app={app}
+                      layout="grid"
+                      onSelectApp={(a) => setSelectedApp(a)}
+                      onDownloadApk={handleDownloadApk}
+                    />
+                  ))}
+                </div>
+              )}
 
               {paginatedApps.length === 0 && (
-                <div className="text-center py-12 glass-panel rounded-2xl space-y-2">
-                  <Layers className="w-8 h-8 text-stone-600 mx-auto" />
-                  <div className="text-sm font-bold text-stone-300">No applications in this category</div>
+                <div className="text-center py-10 glass-panel rounded-xl space-y-1.5">
+                  <Layers className="w-7 h-7 text-stone-600 mx-auto" />
+                  <div className="text-xs font-bold text-stone-300">No applications in this category</div>
                   <button
                     onClick={() => handleCategoryChange('All')}
                     className="text-xs text-amber-400 hover:underline"
@@ -394,51 +432,59 @@ export default function App() {
         onSubmitDemand={handleSubmitDemand}
       />
 
+      {/* Mobile Sticky Bottom Navigation Bar (Google Play Store Mobile UX) */}
+      <MobileBottomNav
+        activeView={activeView}
+        setActiveView={setActiveView}
+        onOpenDemandModal={() => setIsDemandModalOpen(true)}
+        pendingDemandsCount={demands.filter(d => d.status === 'Pending').length}
+      />
+
       {/* Footer with Small Responsive Fonts */}
-      <footer className="relative z-10 mt-12 sm:mt-20 border-t border-amber-500/15 bg-[#0a0705] py-8 sm:py-12">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
+      <footer className="relative z-10 border-t border-amber-500/15 bg-[#0a0705] py-6 sm:py-10 mb-14 sm:mb-0">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4">
             
-            <div className="space-y-1 sm:space-y-2">
+            <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-display font-black text-sm sm:text-base shadow-md shadow-amber-500/20">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-display font-black text-xs sm:text-base shadow-md shadow-amber-500/20">
                   H
                 </div>
-                <span className="font-display font-bold text-lg sm:text-xl text-white">
+                <span className="font-display font-bold text-base sm:text-xl text-white">
                   Hadi88<span className="text-amber-400 ml-0.5">Apps</span>
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 font-medium">
+              <p className="text-[10px] sm:text-xs text-stone-300 font-medium">
                 "Find and ask for your dreaming apps" · "We are building app on your demand"
               </p>
-              <p className="text-[10px] sm:text-[11px] text-stone-500 max-w-md">
+              <p className="text-[9px] sm:text-[11px] text-stone-500 max-w-md">
                 Production-ready mobile software marketplace and bespoke engineering pipeline.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-[11px] sm:text-xs text-stone-300">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-[10px] sm:text-xs text-stone-300">
               <button
                 onClick={() => { setActiveView('store'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className="hover:text-amber-400 transition-colors py-1"
+                className="hover:text-amber-400 transition-colors py-0.5"
               >
                 Storefront
               </button>
               <button
                 onClick={() => setIsDemandModalOpen(true)}
-                className="text-amber-400 font-bold hover:text-amber-300 transition-colors py-1 flex items-center gap-1"
+                className="text-amber-400 font-bold hover:text-amber-300 transition-colors py-0.5 flex items-center gap-1"
               >
                 <MessageSquarePlus className="w-3 h-3" />
                 <span>Ask for App</span>
               </button>
               <button
                 onClick={() => { setActiveView('admin'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className="hover:text-amber-400 transition-colors py-1"
+                className="hover:text-amber-400 transition-colors py-0.5"
               >
                 Admin Panel ({demands.length})
               </button>
               <button
                 onClick={() => { setActiveView('django-code'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className="hover:text-amber-400 transition-colors py-1"
+                className="hover:text-amber-400 transition-colors py-0.5"
               >
                 Django Code (.zip)
               </button>
@@ -446,11 +492,11 @@ export default function App() {
 
           </div>
 
-          <div className="pt-4 sm:pt-6 border-t border-stone-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 text-[10px] sm:text-xs text-stone-500">
+          <div className="pt-3 border-t border-stone-800/80 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-[9px] sm:text-xs text-stone-500">
             <div>
-              <span>© 2026 Hadi88 Apps. Dark chocolate glassmorphism & amber accents.</span>
+              <span>© 2026 Hadi88 Apps. Mobile-first dark chocolate & amber theme.</span>
             </div>
-            <div className="flex items-center gap-1.5 text-stone-400">
+            <div className="flex items-center gap-1 text-stone-400">
               <ShieldCheck className="w-3 h-3 text-amber-500/80" />
               <span>Strict Legal Safety Policy Enforced</span>
             </div>

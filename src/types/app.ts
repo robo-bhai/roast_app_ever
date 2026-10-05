@@ -49,11 +49,11 @@ export interface AppModel {
   file_size: string;
   downloads_count: number;
   rating: number;
-  reviews_count: number;
+  reviews_count?: number;
   created_at: string;
   updated_at: string;
   whats_new?: string;
-  screenshots: string[];
+  screenshots?: string[];
   featured?: boolean;
   min_android_version?: string;
   content_rating?: string;
