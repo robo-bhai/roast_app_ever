@@ -21,11 +21,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Cloudflared Binary
+      - name: Install Cloudflared Official DEB Package
         run: |
-          curl -L -s https://github.com/cloudflare/cloudflare-tunnel-downloads/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
-          chmod +x cloudflared
-          sudo mv cloudflared /usr/local/bin/
+          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflare-tunnel-downloads/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+          cloudflared --version
 
       - name: Install Python Dependencies
         run: |
@@ -89,7 +89,6 @@ jobs:
             exit 1
           fi
 
-          # Tunnels ko run karke logs capture karein
           nohup cloudflared tunnel --no-autoupdate run --token "$BACKEND_TOKEN" > backend_cf.log 2>&1 &
           nohup cloudflared tunnel --no-autoupdate run --token "$FRONTEND_TOKEN" > frontend_cf.log 2>&1 &
 
@@ -108,7 +107,6 @@ jobs:
         run: |
           echo "Server live hai! Testing start karein."
           
-          # Background loop jo tunnels ko crash hone par monitor/check karti rahegi
           for i in {1..120}; do
             sleep 60
             if ! pgrep -f "cloudflared" > /dev/null; then
