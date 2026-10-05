@@ -21,10 +21,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Cloudflared Official DEB Package
+      - name: Install Cloudflared (via Official APT Repository)
         run: |
-          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflare-tunnel-downloads/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared.deb
+          sudo mkdir -p --mode=0755 /etc/apt/keyrings
+          curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /etc/apt/keyrings/cloudflare-main.gpg >/dev/null
+          echo "deb [signed-by=/etc/apt/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main" | sudo tee /etc/apt/sources.list.d/cloudflared.list
+          sudo apt-get update
+          sudo apt-get install -y cloudflared
           cloudflared --version
 
       - name: Install Python Dependencies
