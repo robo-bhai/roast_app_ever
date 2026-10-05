@@ -208,18 +208,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveView('admin')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                activeView === 'admin'
-                  ? 'bg-amber-500 text-black shadow-md font-bold'
-                  : 'text-stone-300 hover:text-amber-400 hover:bg-amber-500/10'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5 inline mr-1" />
-              <span>Admin</span>
-            </button>
-
-            <button
               onClick={() => setActiveView('django-code')}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
                 activeView === 'django-code'
@@ -228,7 +216,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Code2 className="w-3.5 h-3.5 inline mr-1" />
-              <span>Django</span>
+              <span>Django Code</span>
             </button>
           </div>
 
@@ -328,15 +316,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <MessageSquarePlus className="w-3.5 h-3.5" />
             <span>Ask for Custom App</span>
-          </button>
-          <button
-            onClick={() => { setActiveView('admin'); setMobileMenuOpen(false); }}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
-              activeView === 'admin' ? 'bg-amber-500 text-black font-bold' : 'text-stone-300'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Admin Management</span>
           </button>
           <button
             onClick={() => { setActiveView('django-code'); setMobileMenuOpen(false); }}

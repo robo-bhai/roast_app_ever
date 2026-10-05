@@ -13,13 +13,14 @@ import { AppCard } from './components/AppCard';
 import { Pagination } from './components/Pagination';
 import { AppDetailModal } from './components/AppDetailModal';
 import { AdminDashboard } from './components/AdminDashboard';
+import { AdminLogin } from './components/AdminLogin';
 import { DjangoCodeViewer } from './components/DjangoCodeViewer';
 import { ContactAdminModal } from './components/ContactAdminModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { downloadAppApk } from './utils/apkGenerator';
 import { 
   Sparkles, ShieldAlert, Layers, ShieldCheck, 
-  MessageSquarePlus, Smartphone, LayoutGrid, List 
+  MessageSquarePlus, Smartphone, LayoutGrid, List, Lock 
 } from 'lucide-react';
 
 const CATEGORIES: AppCategory[] = [
@@ -100,13 +101,64 @@ export default function App() {
     return INITIAL_DEMANDS;
   });
 
-  const [activeView, setActiveView] = useState<'store' | 'admin' | 'django-code'>('store');
+  // URL Path & View Routing (/ or /admin/manage/)
+  const [activeView, setActiveView] = useState<'store' | 'admin' | 'django-code'>(() => {
+    if (typeof window !== 'undefined') {
+      const p = window.location.pathname;
+      const h = window.location.hash;
+      if (p.startsWith('/admin/manage') || h.includes('/admin/manage')) {
+        return 'admin';
+      }
+      if (p.startsWith('/django') || h.includes('/django')) {
+        return 'django-code';
+      }
+    }
+    return 'store';
+  });
+
+  // Admin authentication state (isolated from public users)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('hadi88_admin_authenticated') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   const [selectedCategory, setSelectedCategory] = useState<AppCategory>('All');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [selectedApp, setSelectedApp] = useState<AppModel | null>(null);
   const [isDemandModalOpen, setIsDemandModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [mobileLayout, setMobileLayout] = useState<'grid' | 'list'>('grid');
+
+  // Handle URL history state & PopState
+  useEffect(() => {
+    const handlePopState = () => {
+      const p = window.location.pathname;
+      const h = window.location.hash;
+      if (p.startsWith('/admin/manage') || h.includes('/admin/manage')) {
+        setActiveView('admin');
+      } else if (p.startsWith('/django') || h.includes('/django')) {
+        setActiveView('django-code');
+      } else {
+        setActiveView('store');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateTo = (view: 'store' | 'admin' | 'django-code') => {
+    setActiveView(view);
+    const targetUrl = view === 'admin' ? '/admin/manage/' : view === 'django-code' ? '/django-code/' : '/';
+    try {
+      window.history.pushState({ view }, '', targetUrl);
+    } catch {
+      // Ignore if iframe sandboxed
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     try {
@@ -178,6 +230,27 @@ export default function App() {
     showToast('Demand request deleted');
   };
 
+  const handleAdminLoginSuccess = () => {
+    setIsAdminAuthenticated(true);
+    try {
+      sessionStorage.setItem('hadi88_admin_authenticated', 'true');
+    } catch {
+      // Ignore
+    }
+    showToast('Admin authenticated successfully');
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminAuthenticated(false);
+    try {
+      sessionStorage.removeItem('hadi88_admin_authenticated');
+    } catch {
+      // Ignore
+    }
+    navigateTo('store');
+    showToast('Admin signed out');
+  };
+
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { All: apps.length };
     apps.forEach((a) => {
@@ -217,12 +290,47 @@ export default function App() {
         <div className="absolute bottom-10 left-10 w-96 h-96 bg-amber-700/5 rounded-full blur-[160px]" />
       </div>
 
-      {/* Top Navigation */}
+      {/* Route Switcher / Address Bar Indicator (Testing helper for localhost:8000 and /admin/manage/) */}
+      <div className="relative z-30 bg-[#0b0806] border-b border-amber-500/10 px-3 py-1 text-[10px] text-stone-400 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 font-mono">
+          <span className="text-stone-500">Route:</span>
+          <span className={activeView === 'admin' ? 'text-amber-400 font-bold' : 'text-stone-300'}>
+            localhost:8000{activeView === 'admin' ? '/admin/manage/' : activeView === 'django-code' ? '/django-code/' : '/'}
+          </span>
+          {activeView === 'admin' && (
+            <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 rounded border border-amber-500/30">
+              {isAdminAuthenticated ? 'Admin Authenticated' : 'Admin Login Required'}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {activeView !== 'admin' ? (
+            <button
+              onClick={() => navigateTo('admin')}
+              className="hover:text-amber-400 text-stone-400 text-[10px] font-mono flex items-center gap-1"
+              title="Navigate directly to custom admin route /admin/manage/"
+            >
+              <Lock className="w-2.5 h-2.5 text-amber-500/70" />
+              <span>Go to /admin/manage/</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => navigateTo('store')}
+              className="hover:text-amber-400 text-stone-300 text-[10px] font-semibold"
+            >
+              ← Back to Users Store (/)
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Top Navigation (Only Users Controls: NO Admin Button visible here!) */}
       <Navbar
         apps={apps}
         onSelectApp={(app) => setSelectedApp(app)}
         activeView={activeView}
-        setActiveView={setActiveView}
+        setActiveView={(v) => navigateTo(v)}
         onDownloadApk={handleDownloadApk}
         onOpenDemandModal={() => setIsDemandModalOpen(true)}
       />
@@ -236,28 +344,30 @@ export default function App() {
       )}
 
       {/* Brand Sub-Header Banner with Small Responsive Fonts */}
-      <div className="relative z-10 bg-[#160f0b]/90 border-b border-amber-500/10 py-1 sm:py-2 px-3 sm:px-4 text-center">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-4 text-[9px] sm:text-xs">
-          <span className="text-amber-300 font-bold tracking-tight">
-            "Find and ask for your dreaming apps"
-          </span>
-          <span className="hidden sm:inline text-amber-500/40">·</span>
-          <span className="text-stone-300 font-medium">
-            "We are building app on your demand"
-          </span>
-          <button
-            onClick={() => setIsDemandModalOpen(true)}
-            className="text-amber-400 hover:text-amber-300 font-bold underline decoration-amber-500/40 underline-offset-2 cursor-pointer text-[9px] sm:text-xs ml-1"
-          >
-            Submit app requirement →
-          </button>
+      {activeView !== 'admin' && (
+        <div className="relative z-10 bg-[#160f0b]/90 border-b border-amber-500/10 py-1 sm:py-2 px-3 sm:px-4 text-center">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-4 text-[9px] sm:text-xs">
+            <span className="text-amber-300 font-bold tracking-tight">
+              "Find and ask for your dreaming apps"
+            </span>
+            <span className="hidden sm:inline text-amber-500/40">·</span>
+            <span className="text-stone-300 font-medium">
+              "We are building app on your demand"
+            </span>
+            <button
+              onClick={() => setIsDemandModalOpen(true)}
+              className="text-amber-400 hover:text-amber-300 font-bold underline decoration-amber-500/40 underline-offset-2 cursor-pointer text-[9px] sm:text-xs ml-1"
+            >
+              Submit app requirement →
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Main Content Area (pb-24 on mobile so bottom tab bar never blocks content) */}
+      {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-8 space-y-4 sm:space-y-8 pb-24 sm:pb-12">
         
-        {/* VIEW 1: Storefront Catalog */}
+        {/* VIEW 1: Storefront Catalog (Strictly for Public Users at localhost:8000/) */}
         {activeView === 'store' && (
           <div className="space-y-4 sm:space-y-8">
             {/* Top Trending / Hero Carousel */}
@@ -268,7 +378,7 @@ export default function App() {
               onOpenDemandModal={() => setIsDemandModalOpen(true)}
             />
 
-            {/* Custom On-Demand App Callout Banner (Compact for Mobile screens) */}
+            {/* Custom On-Demand App Callout Banner */}
             <div className="glass-panel rounded-xl sm:rounded-3xl p-3 sm:p-6 border border-amber-500/20 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4 bg-gradient-to-r from-[#18110b] via-[#1f150e] to-[#18110b]">
               <div className="space-y-1 max-w-2xl">
                 <div className="flex items-center gap-1.5 text-[9px] sm:text-xs font-bold text-amber-400 uppercase tracking-wider">
@@ -392,19 +502,27 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 2: Admin Dashboard */}
+        {/* VIEW 2: SECURED ADMIN PORTAL (/admin/manage/) */}
         {activeView === 'admin' && (
-          <AdminDashboard
-            apps={apps}
-            onAddApp={handleAddApp}
-            onUpdateApp={handleUpdateApp}
-            onDeleteApp={handleDeleteApp}
-            onClose={() => setActiveView('store')}
-            onSelectApp={(app) => setSelectedApp(app)}
-            demands={demands}
-            onUpdateDemandStatus={handleUpdateDemandStatus}
-            onDeleteDemand={handleDeleteDemand}
-          />
+          !isAdminAuthenticated ? (
+            <AdminLogin
+              onLoginSuccess={handleAdminLoginSuccess}
+              onBackToStore={() => navigateTo('store')}
+            />
+          ) : (
+            <AdminDashboard
+              apps={apps}
+              onAddApp={handleAddApp}
+              onUpdateApp={handleUpdateApp}
+              onDeleteApp={handleDeleteApp}
+              onClose={() => navigateTo('store')}
+              onSelectApp={(app) => setSelectedApp(app)}
+              demands={demands}
+              onUpdateDemandStatus={handleUpdateDemandStatus}
+              onDeleteDemand={handleDeleteDemand}
+              onLogout={handleAdminLogout}
+            />
+          )
         )}
 
         {/* VIEW 3: Django Code & Architecture Hub */}
@@ -425,22 +543,23 @@ export default function App() {
         />
       )}
 
-      {/* Contact Admin / Demand an App Modal Form */}
+      {/* Contact Admin / Demand an App Modal Form (For Users on public site) */}
       <ContactAdminModal
         isOpen={isDemandModalOpen}
         onClose={() => setIsDemandModalOpen(false)}
         onSubmitDemand={handleSubmitDemand}
       />
 
-      {/* Mobile Sticky Bottom Navigation Bar (Google Play Store Mobile UX) */}
-      <MobileBottomNav
-        activeView={activeView}
-        setActiveView={setActiveView}
-        onOpenDemandModal={() => setIsDemandModalOpen(true)}
-        pendingDemandsCount={demands.filter(d => d.status === 'Pending').length}
-      />
+      {/* Mobile Sticky Bottom Navigation Bar (Only Public Tabs: Store, Ask App, Django) */}
+      {activeView !== 'admin' && (
+        <MobileBottomNav
+          activeView={activeView}
+          setActiveView={(v) => navigateTo(v)}
+          onOpenDemandModal={() => setIsDemandModalOpen(true)}
+        />
+      )}
 
-      {/* Footer with Small Responsive Fonts */}
+      {/* Footer (No Admin Button for Public Users) */}
       <footer className="relative z-10 border-t border-amber-500/15 bg-[#0a0705] py-6 sm:py-10 mb-14 sm:mb-0">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4">
@@ -462,9 +581,10 @@ export default function App() {
               </p>
             </div>
 
+            {/* Public Footer Navigation: Only Store, Ask for App, and Django Code */}
             <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-[10px] sm:text-xs text-stone-300">
               <button
-                onClick={() => { setActiveView('store'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                onClick={() => navigateTo('store')}
                 className="hover:text-amber-400 transition-colors py-0.5"
               >
                 Storefront
@@ -477,13 +597,7 @@ export default function App() {
                 <span>Ask for App</span>
               </button>
               <button
-                onClick={() => { setActiveView('admin'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className="hover:text-amber-400 transition-colors py-0.5"
-              >
-                Admin Panel ({demands.length})
-              </button>
-              <button
-                onClick={() => { setActiveView('django-code'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                onClick={() => navigateTo('django-code')}
                 className="hover:text-amber-400 transition-colors py-0.5"
               >
                 Django Code (.zip)
@@ -496,9 +610,19 @@ export default function App() {
             <div>
               <span>© 2026 Hadi88 Apps. Mobile-first dark chocolate & amber theme.</span>
             </div>
-            <div className="flex items-center gap-1 text-stone-400">
-              <ShieldCheck className="w-3 h-3 text-amber-500/80" />
-              <span>Strict Legal Safety Policy Enforced</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 text-stone-400">
+                <ShieldCheck className="w-3 h-3 text-amber-500/80" />
+                <span>Strict Legal Safety Policy Enforced</span>
+              </div>
+              <span className="text-stone-700">·</span>
+              <button
+                onClick={() => navigateTo('admin')}
+                className="text-stone-600 hover:text-stone-400 font-mono text-[9px] transition-colors"
+                title="Admin Route: /admin/manage/"
+              >
+                /admin/manage/
+              </button>
             </div>
           </div>
         </div>

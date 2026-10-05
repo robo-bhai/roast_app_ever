@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Plus, Edit, Trash2, Search, Download, Layers, Star, 
-  X, Shield, MessageSquarePlus, Clock, ExternalLink 
+  X, Shield, MessageSquarePlus, Clock, ExternalLink, LogOut 
 } from 'lucide-react';
 import { AppModel, AppCategory, AppDemandRequest } from '../types/app';
 
@@ -15,6 +15,7 @@ interface AdminDashboardProps {
   demands: AppDemandRequest[];
   onUpdateDemandStatus: (demandId: string, newStatus: AppDemandRequest['status']) => void;
   onDeleteDemand: (demandId: string) => void;
+  onLogout?: () => void;
 }
 
 const CATEGORIES: AppCategory[] = [
@@ -38,6 +39,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   demands,
   onUpdateDemandStatus,
   onDeleteDemand,
+  onLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<'apps' | 'demands'>('apps');
   const [searchFilter, setSearchFilter] = useState('');
@@ -200,13 +202,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Publish App</span>
           </button>
-          
+
           <button
             onClick={onClose}
             className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl glass-panel text-stone-300 hover:text-white text-[11px] sm:text-xs font-semibold"
           >
-            Exit
+            Storefront
           </button>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="px-3 py-2 sm:py-2.5 rounded-xl bg-red-950/40 text-red-300 hover:bg-red-900/60 border border-red-500/30 text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              title="Sign Out of Admin"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Sign Out</span>
+            </button>
+          )}
         </div>
       </div>
 

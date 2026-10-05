@@ -220,6 +220,10 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+LOGIN_URL = '/admin/manage/login/'
+LOGIN_REDIRECT_URL = '/admin/manage/'
+LOGOUT_REDIRECT_URL = '/'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Store pagination requirement: Exactly 18 apps per page
@@ -313,19 +317,36 @@ class AppDemandForm(forms.ModelForm):
     name: 'views.py',
     path: 'store/views.py',
     language: 'python',
-    description: 'Views for 18-item catalog pagination, live search, app details, APK download, and client app demands',
+    description: 'Views for 18-item catalog pagination, live search, app details, APK download, custom /admin/manage/ portal and authentication',
     content: `from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView
 from django.http import JsonResponse, FileResponse, Http404
 from django.db.models import Q, F, Sum, Avg
 from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.decorators import user_passes_test
 from .models import App, AppDemand, CATEGORY_CHOICES
 from .forms import AppUploadForm, AppDemandForm
 import os
 
+def staff_required(view_func):
+    """Decorator ensuring only authenticated admin/staff can access /admin/manage/"""
+    decorated_view = user_passes_test(
+        lambda u: u.is_authenticated and (u.is_staff or u.is_superuser),
+        login_url='/admin/manage/login/'
+    )(view_func)
+    return decorated_view
+
+
+# ==========================================
+# PUBLIC USER VIEWS (localhost:8000/)
+# ==========================================
+
 class AppCatalogView(ListView):
     """
-    Hadi88 Apps Storefront - Exactly 18 apps per page with pagination
+    Public User Storefront - Exactly 18 apps per page with pagination
+    Strictly displays public uploaded apps and 'Ask for App' intake
     """
     model = App
     template_name = 'store/index.html'
@@ -418,7 +439,7 @@ def download_apk(request, package_name):
 
 def contact_admin_demand(request):
     """
-    User Demand Form:
+    Public User Demand Form:
     "Find and ask for your dreaming apps"
     "We are building app on your demand"
     Displays strict legal notice warning against illegal or theft apps.
@@ -438,8 +459,46 @@ def contact_admin_demand(request):
     return render(request, 'store/contact_admin.html', {'form': form})
 
 
+# ==========================================
+# SECURED ADMIN PORTAL (/admin/manage/)
+# ==========================================
+
+def admin_login_view(request):
+    """Secure Admin Login at /admin/manage/login/"""
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect('admin_manage')
+
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            if user.is_staff or user.is_superuser:
+                login(request, user)
+                messages.success(request, f"Welcome back, Administrator {user.username}!")
+                return redirect('admin_manage')
+            else:
+                messages.error(request, "Access restricted to staff administrators.")
+        else:
+            messages.error(request, "Invalid username or password.")
+    else:
+        form = AuthenticationForm()
+
+    return render(request, 'store/admin_login.html', {'form': form})
+
+
+def admin_logout_view(request):
+    """Admin Logout handler"""
+    logout(request)
+    messages.info(request, "You have been signed out from the Admin Portal.")
+    return redirect('app_catalog')
+
+
+@staff_required
 def admin_dashboard(request):
-    """Custom Administrative dashboard with app CRUD & Client Demands review"""
+    """
+    Custom Secured Route: /admin/manage/
+    Full administrative control: Publish apps, edit apps, delete apps, manage client demands.
+    """
     apps = App.objects.all().order_by('-created_at')
     demands = AppDemand.objects.all().order_by('-created_at')
 
@@ -450,40 +509,106 @@ def admin_dashboard(request):
         'pending_demands': demands.filter(status='Pending').count(),
     }
 
+    upload_form = AppUploadForm()
     return render(request, 'store/admin_dashboard.html', {
         'apps': apps,
         'demands': demands,
         'stats': stats,
-        'upload_form': AppUploadForm(),
+        'upload_form': upload_form,
     })
+
+
+@staff_required
+def admin_publish_app(request):
+    """Publish a new mobile application binary and metadata"""
+    if request.method == 'POST':
+        form = AppUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            app = form.save()
+            messages.success(request, f"Successfully published '{app.app_name}' (v{app.version}) to Hadi88 Store!")
+            return redirect('admin_manage')
+        else:
+            messages.error(request, "Please correct the form errors below.")
+    return redirect('admin_manage')
+
+
+@staff_required
+def admin_edit_app(request, pk):
+    """Update existing application details or APK version"""
+    app = get_object_or_404(App, pk=pk)
+    if request.method == 'POST':
+        form = AppUploadForm(request.POST, request.FILES, instance=app)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Updated '{app.app_name}' details.")
+            return redirect('admin_manage')
+    return redirect('admin_manage')
+
+
+@staff_required
+def admin_delete_app(request, pk):
+    """Delete application from store"""
+    app = get_object_or_404(App, pk=pk)
+    app_name = app.app_name
+    app.delete()
+    messages.success(request, f"Application '{app_name}' removed from store.")
+    return redirect('admin_manage')
+
+
+@staff_required
+def admin_update_demand_status(request, pk):
+    """Update status of client on-demand app request"""
+    demand = get_object_or_404(AppDemand, pk=pk)
+    new_status = request.POST.get('status')
+    if new_status in dict(DEMAND_STATUS_CHOICES):
+        demand.status = new_status
+        demand.save()
+        messages.success(request, f"Demand '{demand.app_title}' marked as '{new_status}'.")
+    return redirect('admin_manage')
+
+
+@staff_required
+def admin_delete_demand(request, pk):
+    """Delete client app demand"""
+    demand = get_object_or_404(AppDemand, pk=pk)
+    demand.delete()
+    messages.success(request, "Demand request deleted.")
+    return redirect('admin_manage')
 `
   },
   {
     name: 'urls.py',
     path: 'store/urls.py',
     language: 'python',
-    description: 'Routing for catalog, AJAX live search, detail view, APK downloads, and Contact Admin demand view',
+    description: 'Routing for public catalog (localhost:8000/) and secured custom admin route (/admin/manage/)',
     content: `from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
 
 urlpatterns = [
-    # Catalog (18 items per page)
+    # ----------------------------------------------------
+    # 1. PUBLIC USERS ACCESS (localhost:8000/)
+    # Only browsing apps, searching, and submitting demands
+    # ----------------------------------------------------
     path('', views.AppCatalogView.as_view(), name='app_catalog'),
-
-    # Live AJAX Search Endpoint
     path('api/search/', views.live_search_ajax, name='live_search_ajax'),
-
-    # Detail View & Direct Download
     path('app/<slug:package_name>/', views.AppDetailView.as_view(), name='app_detail'),
     path('app/<slug:package_name>/download/', views.download_apk, name='download_apk'),
-
-    # Contact Admin / Ask for Your Dreaming App
     path('ask-for-app/', views.contact_admin_demand, name='contact_admin_demand'),
 
-    # Admin Management Dashboard
-    path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    # ----------------------------------------------------
+    # 2. SECURED CUSTOM ADMIN ROUTE: /admin/manage/
+    # Dedicated secure login and fully administrative portal
+    # ----------------------------------------------------
+    path('admin/manage/login/', views.admin_login_view, name='admin_login'),
+    path('admin/manage/logout/', views.admin_logout_view, name='admin_logout'),
+    path('admin/manage/', views.admin_dashboard, name='admin_manage'),
+    path('admin/manage/publish/', views.admin_publish_app, name='admin_publish_app'),
+    path('admin/manage/app/<int:pk>/edit/', views.admin_edit_app, name='admin_edit_app'),
+    path('admin/manage/app/<int:pk>/delete/', views.admin_delete_app, name='admin_delete_app'),
+    path('admin/manage/demand/<int:pk>/status/', views.admin_update_demand_status, name='admin_update_demand_status'),
+    path('admin/manage/demand/<int:pk>/delete/', views.admin_delete_demand, name='admin_delete_demand'),
 ]
 
 if settings.DEBUG:
@@ -495,7 +620,7 @@ if settings.DEBUG:
     name: 'base.html',
     path: 'templates/store/base.html',
     language: 'html',
-    description: 'Base responsive template with mobile bottom navigation dock, small fonts/icons, and live AJAX search',
+    description: 'Base responsive template for public users (NO admin buttons visible to regular visitors)',
     content: `{% load static %}
 <!DOCTYPE html>
 <html lang="en" class="dark">
@@ -527,11 +652,11 @@ if settings.DEBUG:
 </head>
 <body class="min-h-screen flex flex-col bg-[#0d0a08] text-[#f7efe6] pb-20 sm:pb-0">
 
-  <!-- Top Header Navigation (Mobile-first compact) -->
+  <!-- Top Header Navigation (Users ONLY: No Admin Button!) -->
   <header class="sticky top-0 z-40 bg-[#120e0b]/95 backdrop-blur-md border-b border-amber-500/15">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-20 flex items-center justify-between gap-2.5">
       
-      <!-- Brand Logo -->
+      <!-- Brand Logo & Tagline -->
       <a href="{% url 'app_catalog' %}" class="flex items-center gap-2 shrink-0">
         <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-display font-black text-base sm:text-xl shadow-md shadow-amber-500/20">
           H
@@ -555,20 +680,17 @@ if settings.DEBUG:
         <div id="live-search-results" class="hidden absolute top-full mt-1.5 w-full glass-panel rounded-xl p-1.5 shadow-2xl z-50 max-h-72 overflow-y-auto"></div>
       </div>
 
-      <!-- Desktop Navigation Actions -->
-      <nav class="hidden sm:flex items-center gap-2">
+      <!-- User Action (Ask for App) -->
+      <nav class="flex items-center gap-2">
         <a href="{% url 'contact_admin_demand' %}" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black shadow-md transition-all flex items-center gap-1">
           <span>Ask for App</span>
-        </a>
-        <a href="{% url 'admin_dashboard' %}" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold glass-panel text-stone-300 hover:text-white">
-          Admin
         </a>
       </nav>
 
     </div>
   </header>
 
-  <!-- Taglines Announcement Strip (Micro font on mobile) -->
+  <!-- Taglines Strip -->
   <div class="bg-[#160f0b]/90 border-b border-amber-500/10 py-1 px-3 text-center text-[9px] sm:text-xs text-stone-300">
     <span class="text-amber-300 font-bold">"Find and ask for your dreaming apps"</span>
     <span class="text-stone-500 mx-1">·</span>
@@ -591,7 +713,7 @@ if settings.DEBUG:
     {% block content %}{% endblock %}
   </main>
 
-  <!-- Mobile Sticky Bottom Navigation Dock (Google Play Store Style) -->
+  <!-- Mobile Sticky Bottom Navigation Dock (Users Only: Store & Ask App) -->
   <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#120e0b]/95 backdrop-blur-xl border-t border-amber-500/20 px-3 py-1.5 flex items-center justify-around">
     <a href="{% url 'app_catalog' %}" class="flex flex-col items-center text-amber-400 text-[10px] font-bold">
       <span class="text-sm">🏪</span>
@@ -601,13 +723,9 @@ if settings.DEBUG:
       <span class="text-sm">💡</span>
       <span>Ask App</span>
     </a>
-    <a href="{% url 'admin_dashboard' %}" class="flex flex-col items-center text-stone-400 hover:text-white text-[10px]">
-      <span class="text-sm">🛠️</span>
-      <span>Admin</span>
-    </a>
   </nav>
 
-  <!-- Footer -->
+  <!-- Footer (No Admin Button) -->
   <footer class="mt-12 sm:mt-20 border-t border-amber-500/15 bg-[#0a0705] py-8">
     <div class="max-w-7xl mx-auto px-4 text-center text-xs text-stone-400 space-y-1.5">
       <div class="font-display font-bold text-white text-sm sm:text-base">Hadi88 Apps</div>
@@ -663,6 +781,243 @@ if settings.DEBUG:
   </script>
 </body>
 </html>
+`
+  },
+  {
+    name: 'admin_login.html',
+    path: 'templates/store/admin_login.html',
+    language: 'html',
+    description: 'Secured Admin Authentication template at custom route /admin/manage/login/',
+    content: `{% extends 'store/base.html' %}
+
+{% block title %}Admin Sign In - Hadi88 Apps Portal{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center px-4 py-8">
+  <div class="w-full max-w-md glass-panel rounded-3xl p-6 sm:p-8 border border-amber-500/25 shadow-2xl space-y-6">
+    
+    <div class="text-center space-y-2">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black mx-auto shadow-lg shadow-amber-500/20 text-xl font-bold">
+        🔒
+      </div>
+      <h1 class="text-2xl font-display font-extrabold text-white">Admin Management Sign In</h1>
+      <p class="text-xs text-stone-400">Custom Secured Route: <code class="text-amber-400">/admin/manage/</code></p>
+    </div>
+
+    <form method="POST" class="space-y-4">
+      {% csrf_token %}
+      
+      <div>
+        <label class="block text-xs font-semibold text-stone-300 mb-1">Admin Username</label>
+        <input 
+          type="text" 
+          name="username" 
+          required 
+          class="w-full bg-[#18120e] text-white text-xs sm:text-sm rounded-xl px-3 py-2.5 border border-amber-500/20 focus:border-amber-400 focus:outline-none"
+          placeholder="admin"
+        />
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-stone-300 mb-1">Admin Password</label>
+        <input 
+          type="password" 
+          name="password" 
+          required 
+          class="w-full bg-[#18120e] text-white text-xs sm:text-sm rounded-xl px-3 py-2.5 border border-amber-500/20 focus:border-amber-400 focus:outline-none"
+          placeholder="••••••••"
+        />
+      </div>
+
+      <button 
+        type="submit" 
+        class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-sm shadow-xl shadow-amber-500/20"
+      >
+        Sign In to Management
+      </button>
+    </form>
+
+    <div class="text-center pt-2 border-t border-amber-500/10">
+      <a href="{% url 'app_catalog' %}" class="text-xs text-stone-400 hover:text-amber-400">
+        ← Return to Public Store
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+`
+  },
+  {
+    name: 'admin_dashboard.html',
+    path: 'templates/store/admin_dashboard.html',
+    language: 'html',
+    description: 'Secured administrative dashboard at /admin/manage/ with app CRUD, status editing, and demand deletion',
+    content: `{% extends 'store/base.html' %}
+
+{% block title %}Admin Dashboard - Hadi88 Apps Portal (/admin/manage/){% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6">
+
+  <!-- Header & Logout -->
+  <div class="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div>
+      <div class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Hadi88 Custom Admin Portal</div>
+      <h1 class="text-lg sm:text-2xl font-display font-extrabold text-white">Management Dashboard (/admin/manage/)</h1>
+      <p class="text-xs text-stone-400">Welcome, {{ request.user.username }}. Full control over apps and client demands.</p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <a href="{% url 'admin_logout' %}" class="px-3 py-1.5 rounded-xl bg-red-950/40 text-red-300 hover:bg-red-900/60 border border-red-500/30 text-xs font-semibold">
+        Sign Out
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Stats Grid -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Total Downloads</span>
+      <div class="text-lg sm:text-2xl font-bold text-amber-400 font-mono">{{ stats.total_downloads }}</div>
+    </div>
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Live Apps</span>
+      <div class="text-lg sm:text-2xl font-bold text-white font-mono">{{ stats.total_apps }}</div>
+    </div>
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Client Demands</span>
+      <div class="text-lg sm:text-2xl font-bold text-amber-400 font-mono">{{ stats.pending_demands }} pending</div>
+    </div>
+    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
+      <span class="text-[9px] text-stone-400 uppercase">Average Rating</span>
+      <div class="text-lg sm:text-2xl font-bold text-white font-mono">★ {{ stats.avg_rating }}</div>
+    </div>
+  </div>
+
+  <!-- Publish New App Form Block -->
+  <div class="glass-panel rounded-2xl p-4 sm:p-6 border border-amber-500/20 space-y-3">
+    <h2 class="text-sm sm:text-base font-bold text-white">Publish New Application</h2>
+    <form method="POST" action="{% url 'admin_publish_app' %}" enctype="multipart/form-data" class="space-y-3">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+        <div>
+          <label class="block text-stone-300 mb-1">App Name</label>
+          {{ upload_form.app_name }}
+        </div>
+        <div>
+          <label class="block text-stone-300 mb-1">Package Name (Slug)</label>
+          {{ upload_form.package_name }}
+        </div>
+        <div>
+          <label class="block text-stone-300 mb-1">Category</label>
+          {{ upload_form.category }}
+        </div>
+        <div>
+          <label class="block text-stone-300 mb-1">Version</label>
+          {{ upload_form.version }}
+        </div>
+        <div>
+          <label class="block text-stone-300 mb-1">File Size</label>
+          {{ upload_form.file_size }}
+        </div>
+        <div>
+          <label class="block text-stone-300 mb-1">APK Binary</label>
+          {{ upload_form.apk_file }}
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs text-stone-300 mb-1">Description</label>
+        {{ upload_form.description }}
+      </div>
+      <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 text-black font-extrabold text-xs">
+        Publish App to Store
+      </button>
+    </form>
+  </div>
+
+  <!-- Client Demands Review & Management -->
+  <div class="glass-panel rounded-2xl p-4 sm:p-6 border border-amber-500/20 space-y-3">
+    <h2 class="text-sm sm:text-base font-bold text-white">Client App Requests & Demands</h2>
+    <div class="space-y-2">
+      {% for demand in demands %}
+      <div class="glass-panel rounded-xl p-3 border border-amber-500/15 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="space-y-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-white text-xs">{{ demand.app_title }}</span>
+            <span class="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded">{{ demand.platform }}</span>
+            <span class="text-[9px] text-stone-400">{{ demand.category }}</span>
+          </div>
+          <div class="text-[10px] text-stone-300">
+            <strong>{{ demand.user_name }}</strong> · {{ demand.email }} · {{ demand.contact_method }}: {{ demand.contact_handle }}
+          </div>
+          <p class="text-[11px] text-stone-300 leading-relaxed">{{ demand.requirements }}</p>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <form method="POST" action="{% url 'admin_update_demand_status' demand.pk %}">
+            {% csrf_token %}
+            <select name="status" onchange="this.form.submit()" class="bg-[#18120e] text-[10px] text-amber-300 rounded-lg px-2 py-1 border border-amber-500/30">
+              <option value="Pending" {% if demand.status == 'Pending' %}selected{% endif %}>Pending</option>
+              <option value="In Review" {% if demand.status == 'In Review' %}selected{% endif %}>In Review</option>
+              <option value="Approved" {% if demand.status == 'Approved' %}selected{% endif %}>Approved</option>
+              <option value="In Development" {% if demand.status == 'In Development' %}selected{% endif %}>In Dev</option>
+              <option value="Rejected" {% if demand.status == 'Rejected' %}selected{% endif %}>Rejected</option>
+            </select>
+          </form>
+
+          <form method="POST" action="{% url 'admin_delete_demand' demand.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="px-2 py-1 rounded bg-red-950/40 text-red-400 text-xs hover:bg-red-900/60">
+              Delete
+            </button>
+          </form>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-xs text-stone-400 py-4 text-center">No inbound client app requests.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Applications Inventory -->
+  <div class="space-y-2">
+    <h2 class="text-xs sm:text-sm font-bold text-white">Published Apps Inventory</h2>
+    <div class="glass-panel rounded-2xl overflow-hidden border border-amber-500/20">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-[#18120e] text-stone-400 border-b border-amber-500/15">
+          <tr>
+            <th class="p-3">Application</th>
+            <th class="p-3">Category</th>
+            <th class="p-3">Version</th>
+            <th class="p-3">Downloads</th>
+            <th class="p-3">Rating</th>
+            <th class="p-3 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-amber-500/10">
+          {% for app in apps %}
+          <tr class="hover:bg-amber-500/5">
+            <td class="p-3 font-bold text-white">{{ app.app_name }}</td>
+            <td class="p-3 text-stone-300">{{ app.category }}</td>
+            <td class="p-3 font-mono text-stone-300">v{{ app.version }}</td>
+            <td class="p-3 font-mono text-amber-400">{{ app.downloads_count }}</td>
+            <td class="p-3 font-bold text-amber-400">★ {{ app.rating }}</td>
+            <td class="p-3 text-right">
+              <form method="POST" action="{% url 'admin_delete_app' app.pk %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="text-red-400 hover:text-red-300 text-xs">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
 `
   },
   {
@@ -857,97 +1212,6 @@ if settings.DEBUG:
 `
   },
   {
-    name: 'admin_dashboard.html',
-    path: 'templates/store/admin_dashboard.html',
-    language: 'html',
-    description: 'Administrative dashboard template with mobile app card view, desktop table, and inbound demands review',
-    content: `{% extends 'store/base.html' %}
-
-{% block title %}Admin Dashboard - Hadi88 Apps{% endblock %}
-
-{% block content %}
-<div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
-
-  <!-- Header -->
-  <div class="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-    <div>
-      <div class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Hadi88 Administration</div>
-      <h1 class="text-lg sm:text-2xl font-display font-extrabold text-white">Store Control Dashboard</h1>
-    </div>
-  </div>
-
-  <!-- KPI Stats Grid (Compact on mobile) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
-      <span class="text-[9px] text-stone-400 uppercase">Downloads</span>
-      <div class="text-lg sm:text-2xl font-bold text-amber-400 font-mono">{{ stats.total_downloads }}</div>
-    </div>
-    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
-      <span class="text-[9px] text-stone-400 uppercase">Apps</span>
-      <div class="text-lg sm:text-2xl font-bold text-white font-mono">{{ stats.total_apps }}</div>
-    </div>
-    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
-      <span class="text-[9px] text-stone-400 uppercase">Demands</span>
-      <div class="text-lg sm:text-2xl font-bold text-amber-400 font-mono">{{ stats.pending_demands }} pending</div>
-    </div>
-    <div class="glass-panel rounded-xl p-3 border border-amber-500/15">
-      <span class="text-[9px] text-stone-400 uppercase">Rating</span>
-      <div class="text-lg sm:text-2xl font-bold text-white font-mono">★ {{ stats.avg_rating }}</div>
-    </div>
-  </div>
-
-  <!-- Apps Inventory (Mobile Card List on small screens, Table on desktop) -->
-  <div class="space-y-2">
-    <h2 class="text-xs sm:text-sm font-bold text-white">Application Inventory</h2>
-
-    <!-- Mobile App Cards (sm:hidden) -->
-    <div class="sm:hidden space-y-2">
-      {% for app in apps %}
-      <div class="glass-panel rounded-xl p-3 border border-amber-500/15 flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2 min-w-0">
-          <img src="{{ app.app_icon.url }}" alt="{{ app.app_name }}" class="w-9 h-9 rounded-lg object-cover bg-stone-900 shrink-0">
-          <div class="min-w-0">
-            <div class="text-xs font-bold text-white truncate">{{ app.app_name }}</div>
-            <div class="text-[10px] text-stone-400">{{ app.category }} · v{{ app.version }}</div>
-            <div class="text-[9px] text-amber-400">★ {{ app.rating }} · {{ app.downloads_count }} dl</div>
-          </div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- Desktop Table (hidden sm:block) -->
-    <div class="hidden sm:block glass-panel rounded-2xl overflow-hidden border border-amber-500/20">
-      <table class="w-full text-left text-xs">
-        <thead class="bg-[#18120e] text-stone-400 border-b border-amber-500/15">
-          <tr>
-            <th class="p-3">Application</th>
-            <th class="p-3">Category</th>
-            <th class="p-3">Version</th>
-            <th class="p-3">Downloads</th>
-            <th class="p-3">Rating</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-amber-500/10">
-          {% for app in apps %}
-          <tr class="hover:bg-amber-500/5">
-            <td class="p-3 font-bold text-white">{{ app.app_name }}</td>
-            <td class="p-3 text-stone-300">{{ app.category }}</td>
-            <td class="p-3 font-mono text-stone-300">v{{ app.version }}</td>
-            <td class="p-3 font-mono text-amber-400">{{ app.downloads_count }}</td>
-            <td class="p-3 font-bold text-amber-400">★ {{ app.rating }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-</div>
-{% endblock %}
-`
-  },
-  {
     name: 'contact_admin.html',
     path: 'templates/store/contact_admin.html',
     language: 'html',
@@ -1074,13 +1338,20 @@ whitenoise>=6.6.0
 
 A modern, responsive Django web marketplace replicating the Google Play Store experience with dark chocolate brown & amber glassmorphic design.
 
-## Features
-- **Mobile First Responsive**: Compact fonts, micro icons, and sticky mobile dock navigation.
-- **18 Apps Per Page**: Strict pagination limit of exactly 18 items per page.
-- **Client App Demands**: Dedicated on-demand app request pipeline connecting users with Hadi88 engineers.
-- **Strict Compliance Policy**: Zero tolerance for illegal, theft, pirated, or cracked software categories.
-- **Live AJAX Search**: Instant search bar in header with keyboard shortcuts.
-- **Atomic Downloads**: Fast APK downloads with race-condition-free \`F()\` download counters.
+## Architecture & Routes
+- **Public User Store (\`localhost:8000/\`)**:
+  - Displays all published applications (exactly 18 items per page with pagination).
+  - Search bar with instant AJAX matching.
+  - Detail view and verified APK downloads.
+  - "Ask for Your Dreaming App" on-demand intake form.
+  - **Zero admin links or buttons displayed to public visitors.**
+- **Secured Admin Portal (\`localhost:8000/admin/manage/\`)**:
+  - Requires administrator/staff authentication.
+  - Login at \`/admin/manage/login/\`.
+  - Full app CRUD: Publish new apps, edit details, unpublish, or delete apps.
+  - Manage client demands: Review specifications, change statuses (Pending, In Review, Approved, In Development, Rejected), and delete requests.
+- **Strict Safety Policy**:
+  - *"We do not build any illegal, pirated, or theft category applications. In such cases, we will never reply to spam emails, fraudulent messages, or illicit solicitations. Our discussion and decision is final."*
 
 ## Quickstart
 \`\`\`bash
@@ -1092,6 +1363,7 @@ python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 \`\`\`
+Visit \`http://127.0.0.1:8000/\` for public store and \`http://127.0.0.1:8000/admin/manage/\` for the secure management portal.
 `
   }
 ];
