@@ -1,7 +1,7 @@
 name: Run AppStore Test Servers & Cloudflare Tunnel
 
 on:
-  workflow_dispatch: # Direct GitHub Actions tab se manual run karne ke liye
+  workflow_dispatch:
 
 jobs:
   run-appstore:
@@ -85,19 +85,35 @@ jobs:
           FRONTEND_TOKEN: ${{ secrets.CLOUDFLARE_FRONTEND_TOKEN }}
         run: |
           if [ -z "$BACKEND_TOKEN" ] || [ -z "$FRONTEND_TOKEN" ]; then
-            echo "Error: CLOUDFLARE_BACKEND_TOKEN ya CLOUDFLARE_FRONTEND_TOKEN secret missing hai!"
+            echo "ERROR: Secrets missing hain! GitHub Secrets verify karein."
             exit 1
           fi
 
-          nohup cloudflared tunnel run --token "$BACKEND_TOKEN" > backend_tunnel.log 2>&1 &
-          nohup cloudflared tunnel run --token "$FRONTEND_TOKEN" > frontend_tunnel.log 2>&1 &
+          # Tunnels ko run karke logs capture karein
+          cloudflared tunnel --no-autoupdate run --token "$BACKEND_TOKEN" > backend_cf.log 2>&1 &
+          cloudflared tunnel --no-autoupdate run --token "$FRONTEND_TOKEN" > frontend_cf.log 2>&1 &
 
-          sleep 3
+          echo "Waiting for Cloudflare Tunnels to establish connections..."
+          sleep 8
+
           echo "=================================================="
-          echo "  Both Cloudflare Tunnels started with secret tokens!"
+          echo "=== Backend Tunnel Log Check ==="
+          cat backend_cf.log | head -n 30 || true
+          echo "=================================================="
+          echo "=== Frontend Tunnel Log Check ==="
+          cat frontend_cf.log | head -n 30 || true
           echo "=================================================="
 
-      - name: Keep Server Alive for 2 Hours (120 Minutes)
+      - name: Monitor and Keep Alive (2 Hours)
         run: |
-          echo "Server live hai! Aap apne domain se testing kar sakte hain."
-          sleep 7200
+          echo "Server live hai! Testing start karein."
+          
+          # Background loop jo tunnels ko crash hone par monitor/check karti rahegi
+          for i in {1..120}; do
+            sleep 60
+            if ! pgrep -x "cloudflared" > /dev/null; then
+              echo "Warning: Cloudflared process stopped! Log status:"
+              cat backend_cf.log || true
+              cat frontend_cf.log || true
+            fi
+          done
