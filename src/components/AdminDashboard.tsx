@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  Plus, Edit, Trash2, Search, ArrowUpRight, BarChart3, 
-  Download, Layers, Star, HardDrive, Check, X, Shield, 
-  UploadCloud, MessageSquarePlus, Clock, Mail, CheckCircle2, ShieldAlert 
+  Plus, Edit, Trash2, Search, Download, Layers, Star, 
+  X, Shield, MessageSquarePlus, Clock 
 } from 'lucide-react';
 import { AppModel, AppCategory, AppDemandRequest } from '../types/app';
 
@@ -47,8 +46,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [editingApp, setEditingApp] = useState<AppModel | null>(null);
   const [deletingAppId, setDeletingAppId] = useState<string | null>(null);
-  const [deletingDemandId, setDeletingDemandId] = useState<string | null>(null);
-  const [inspectingDemand, setInspectingDemand] = useState<AppDemandRequest | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -65,14 +62,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     featured: false,
   });
 
-  // Calculate store stats
   const totalDownloads = apps.reduce((acc, a) => acc + a.downloads_count, 0);
   const avgRating = apps.length > 0
     ? (apps.reduce((acc, a) => acc + a.rating, 0) / apps.length).toFixed(2)
     : '0.00';
-  const categoriesCount = new Set(apps.map(a => a.category)).size;
 
-  // Filter apps in table
   const filteredApps = apps.filter(app => {
     const matchesSearch = 
       app.app_name.toLowerCase().includes(searchFilter.toLowerCase()) ||
@@ -82,7 +76,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return matchesSearch && matchesCategory;
   });
 
-  // Filter demands
   const filteredDemands = demands.filter(d => {
     if (demandStatusFilter !== 'All' && d.status !== demandStatusFilter) return false;
     return true;
@@ -176,136 +169,136 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fade-in">
+    <div className="space-y-4 sm:space-y-8 animate-fade-in">
       
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel rounded-3xl p-5 sm:p-7 border border-amber-500/20">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 glass-panel rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 border border-amber-500/20">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
-            <Shield className="w-4 h-4" />
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-amber-400 uppercase tracking-wider">
+            <Shield className="w-3.5 h-3.5" />
             <span>Hadi88 Apps · Admin Management</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white mt-1">
-            Store & Demand Control Center
+          <h1 className="text-lg sm:text-3xl font-display font-extrabold text-white mt-0.5">
+            Store & Demand Control
           </h1>
-          <p className="text-xs text-stone-400 mt-0.5">
-            "We are building app on your demand" — Review custom client inquiries, publish APK packages, and track stats.
+          <p className="text-[11px] sm:text-xs text-stone-400 mt-0.5">
+            "We are building app on your demand" — Review client demands & manage apps.
           </p>
         </div>
 
         <button
           onClick={handleOpenCreate}
-          className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs flex items-center justify-center gap-2 shadow-xl shadow-amber-500/25 transition-all hover:scale-102 min-h-[44px]"
+          className="w-full sm:w-auto px-4 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/25 transition-all hover:scale-102"
         >
-          <Plus className="w-4 h-4 stroke-[3]" />
-          <span>Publish New App (APK)</span>
+          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+          <span>Publish App (APK)</span>
         </button>
       </div>
 
-      {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* KPI Stats Grid (Compact on mobile) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         
-        <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-amber-500/15">
+        <div className="glass-panel rounded-xl sm:rounded-2xl p-2.5 sm:p-5 border border-amber-500/15">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs text-stone-400 font-semibold uppercase tracking-wider">Downloads</span>
-            <Download className="w-4 h-4 text-amber-400" />
+            <span className="text-[9px] sm:text-xs text-stone-400 font-semibold uppercase tracking-wider">Downloads</span>
+            <Download className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-display font-bold text-amber-400 font-mono tabular-nums mt-1.5 sm:mt-2">
+          <div className="text-lg sm:text-3xl font-display font-bold text-amber-400 font-mono tabular-nums mt-1 sm:mt-2">
             {totalDownloads.toLocaleString()}
           </div>
-          <div className="text-[10px] sm:text-[11px] text-stone-500 mt-1">Across all packages</div>
+          <div className="text-[9px] sm:text-[11px] text-stone-500 mt-0.5">Across all packages</div>
         </div>
 
-        <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-amber-500/15">
+        <div className="glass-panel rounded-xl sm:rounded-2xl p-2.5 sm:p-5 border border-amber-500/15">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs text-stone-400 font-semibold uppercase tracking-wider">Live Apps</span>
-            <Layers className="w-4 h-4 text-amber-400" />
+            <span className="text-[9px] sm:text-xs text-stone-400 font-semibold uppercase tracking-wider">Apps</span>
+            <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-display font-bold text-white font-mono tabular-nums mt-1.5 sm:mt-2">
+          <div className="text-lg sm:text-3xl font-display font-bold text-white font-mono tabular-nums mt-1 sm:mt-2">
             {apps.length}
           </div>
-          <div className="text-[10px] sm:text-[11px] text-stone-500 mt-1">Catalog inventory</div>
+          <div className="text-[9px] sm:text-[11px] text-stone-500 mt-0.5">Catalog inventory</div>
         </div>
 
-        <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-amber-500/15">
+        <div className="glass-panel rounded-xl sm:rounded-2xl p-2.5 sm:p-5 border border-amber-500/15">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs text-stone-400 font-semibold uppercase tracking-wider">Client Demands</span>
-            <MessageSquarePlus className="w-4 h-4 text-amber-400" />
+            <span className="text-[9px] sm:text-xs text-stone-400 font-semibold uppercase tracking-wider">Demands</span>
+            <MessageSquarePlus className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-display font-bold text-amber-400 font-mono tabular-nums mt-1.5 sm:mt-2">
+          <div className="text-lg sm:text-3xl font-display font-bold text-amber-400 font-mono tabular-nums mt-1 sm:mt-2">
             {demands.length}
           </div>
-          <div className="text-[10px] sm:text-[11px] text-stone-500 mt-1">
+          <div className="text-[9px] sm:text-[11px] text-stone-500 mt-0.5">
             {demands.filter(d => d.status === 'Pending').length} pending review
           </div>
         </div>
 
-        <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-amber-500/15">
+        <div className="glass-panel rounded-xl sm:rounded-2xl p-2.5 sm:p-5 border border-amber-500/15">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs text-stone-400 font-semibold uppercase tracking-wider">Rating</span>
-            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+            <span className="text-[9px] sm:text-xs text-stone-400 font-semibold uppercase tracking-wider">Rating</span>
+            <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-amber-400 text-amber-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-display font-bold text-white font-mono tabular-nums mt-1.5 sm:mt-2">
+          <div className="text-lg sm:text-3xl font-display font-bold text-white font-mono tabular-nums mt-1 sm:mt-2">
             ★ {avgRating}
           </div>
-          <div className="text-[10px] sm:text-[11px] text-stone-500 mt-1">Average store rating</div>
+          <div className="text-[9px] sm:text-[11px] text-stone-500 mt-0.5">Store average</div>
         </div>
 
       </div>
 
       {/* Tabs: Application Inventory vs Client On-Demand Requests */}
-      <div className="flex items-center gap-2 border-b border-amber-500/20 pb-1">
+      <div className="flex items-center gap-1.5 border-b border-amber-500/20 pb-1">
         <button
           onClick={() => setActiveTab('apps')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 min-h-[44px] ${
+          className={`px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 ${
             activeTab === 'apps'
-              ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+              ? 'bg-amber-500 text-black shadow-md'
               : 'text-stone-300 hover:text-white hover:bg-amber-500/10'
           }`}
         >
-          <Layers className="w-4 h-4" />
-          <span>Application Inventory ({apps.length})</span>
+          <Layers className="w-3.5 h-3.5" />
+          <span>Apps ({apps.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('demands')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 min-h-[44px] ${
+          className={`px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 ${
             activeTab === 'demands'
-              ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+              ? 'bg-amber-500 text-black shadow-md'
               : 'text-stone-300 hover:text-white hover:bg-amber-500/10'
           }`}
         >
-          <MessageSquarePlus className="w-4 h-4" />
-          <span>Client App Demands ({demands.length})</span>
+          <MessageSquarePlus className="w-3.5 h-3.5" />
+          <span>Demands ({demands.length})</span>
           {demands.filter(d => d.status === 'Pending').length > 0 && (
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
           )}
         </button>
       </div>
 
       {/* TAB 1: APPLICATIONS INVENTORY */}
       {activeTab === 'apps' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           
           {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 glass-panel rounded-2xl p-4 border border-amber-500/15">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 glass-panel rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-amber-500/15">
             <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400/70" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-amber-400/70" />
               <input
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
                 placeholder="Search app or package..."
-                className="w-full bg-[#18120e] text-xs text-white placeholder-stone-400 rounded-xl pl-10 pr-4 py-2.5 border border-amber-500/20 focus:outline-none focus:border-amber-400 min-h-[44px]"
+                className="w-full bg-[#18120e] text-xs text-white placeholder-stone-400 rounded-lg sm:rounded-xl pl-9 pr-3 py-1.5 sm:py-2 border border-amber-500/20 focus:outline-none focus:border-amber-400"
               />
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs text-stone-400 whitespace-nowrap">Category:</span>
+              <span className="text-[11px] text-stone-400 whitespace-nowrap">Category:</span>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="bg-[#18120e] text-xs text-stone-200 rounded-xl px-3 py-2 border border-amber-500/20 focus:outline-none focus:border-amber-400 min-h-[44px] w-full sm:w-auto"
+                className="bg-[#18120e] text-[11px] sm:text-xs text-stone-200 rounded-lg sm:rounded-xl px-2.5 py-1.5 border border-amber-500/20 focus:outline-none focus:border-amber-400 w-full sm:w-auto"
               >
                 <option value="All">All Categories</option>
                 {CATEGORIES.map(c => (
@@ -315,77 +308,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          {/* Table */}
-          <div className="glass-panel rounded-3xl overflow-hidden border border-amber-500/20">
+          {/* Table (Responsive horizontal scroll with compact text) */}
+          <div className="glass-panel rounded-2xl overflow-hidden border border-amber-500/20">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs min-w-[640px]">
+              <table className="w-full text-left text-[11px] sm:text-xs min-w-[560px]">
                 <thead className="bg-[#18120e]/90 text-stone-400 uppercase tracking-wider border-b border-amber-500/15">
                   <tr>
-                    <th className="px-6 py-4">Application</th>
-                    <th className="px-6 py-4">Category</th>
-                    <th className="px-6 py-4">Version</th>
-                    <th className="px-6 py-4">Downloads</th>
-                    <th className="px-6 py-4">Rating</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    <th className="px-3 sm:px-6 py-2.5 sm:py-3.5">Application</th>
+                    <th className="px-3 sm:px-6 py-2.5 sm:py-3.5">Category</th>
+                    <th className="px-3 sm:px-6 py-2.5 sm:py-3.5">Version</th>
+                    <th className="px-3 sm:px-6 py-2.5 sm:py-3.5">Downloads</th>
+                    <th className="px-3 sm:px-6 py-2.5 sm:py-3.5">Rating</th>
+                    <th className="px-3 sm:px-6 py-2.5 sm:py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-amber-500/10">
                   {filteredApps.map((app) => (
                     <tr key={app.id} className="hover:bg-amber-500/5 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className="px-3 sm:px-6 py-2.5 sm:py-3.5">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <img
                             src={app.app_icon}
                             alt={app.app_name}
                             referrerPolicy="no-referrer"
-                            className="w-10 h-10 rounded-xl object-cover bg-stone-900 border border-amber-500/20 shrink-0"
+                            className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg object-cover bg-stone-900 border border-amber-500/20 shrink-0"
                           />
                           <div className="min-w-0">
                             <button
                               onClick={() => onSelectApp(app)}
-                              className="font-bold text-white text-sm hover:text-amber-400 truncate text-left block"
+                              className="font-bold text-white text-xs sm:text-sm hover:text-amber-400 truncate text-left block"
                             >
                               {app.app_name}
                             </button>
-                            <div className="font-mono text-[11px] text-stone-400 truncate mt-0.5">
+                            <div className="font-mono text-[10px] text-stone-400 truncate">
                               {app.package_name}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-medium text-stone-300">
+                      <td className="px-3 sm:px-6 py-2.5 sm:py-3.5 text-stone-300">
                         {app.category}
                       </td>
-                      <td className="px-6 py-4 font-mono text-stone-300">
+                      <td className="px-3 sm:px-6 py-2.5 sm:py-3.5 font-mono text-stone-300">
                         v{app.version}
                       </td>
-                      <td className="px-6 py-4 font-mono text-amber-400 font-semibold tabular-nums">
+                      <td className="px-3 sm:px-6 py-2.5 sm:py-3.5 font-mono text-amber-400 font-semibold tabular-nums">
                         {app.downloads_count.toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 font-bold text-amber-400">
+                      <td className="px-3 sm:px-6 py-2.5 sm:py-3.5 font-bold text-amber-400">
                         ★ {app.rating.toFixed(1)}
                       </td>
-                      <td className="px-6 py-4 text-right space-x-2">
+                      <td className="px-3 sm:px-6 py-2.5 sm:py-3.5 text-right space-x-1 sm:space-x-2">
                         <button
                           onClick={() => handleOpenEdit(app)}
-                          className="p-2 rounded-lg bg-stone-800 text-stone-300 hover:text-amber-400 transition-colors min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
+                          className="p-1.5 rounded-lg bg-stone-800 text-stone-300 hover:text-amber-400 transition-colors"
                           title="Edit App Details"
                         >
-                          <Edit className="w-3.5 h-3.5" />
+                          <Edit className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         </button>
                         <button
                           onClick={() => setDeletingAppId(app.id)}
-                          className="p-2 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 transition-colors min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
+                          className="p-1.5 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 transition-colors"
                           title="Delete Application"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         </button>
                       </td>
                     </tr>
                   ))}
                   {filteredApps.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-stone-400">
+                      <td colSpan={6} className="px-6 py-8 text-center text-stone-400 text-xs">
                         No applications matched your filter criteria.
                       </td>
                     </tr>
@@ -400,28 +393,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* TAB 2: CLIENT APP DEMANDS & REQUIREMENTS */}
       {activeTab === 'demands' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           
-          {/* Header & Status Filter */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 glass-panel rounded-2xl p-4 border border-amber-500/15">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 glass-panel rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-amber-500/15">
             <div>
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
+              <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
                 <span>Inbound App Demands</span>
-                <span className="text-xs font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                  {demands.length} submitted
+                <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
+                  {demands.length}
                 </span>
               </h2>
-              <p className="text-[11px] text-stone-400 mt-0.5">
-                Submitted via "Ask For Your Dreaming App" contact form.
+              <p className="text-[10px] sm:text-[11px] text-stone-400">
+                Submitted via "Ask For Your Dreaming App" form.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs text-stone-400">Filter Status:</span>
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <span className="text-[10px] sm:text-xs text-stone-400">Status:</span>
               <select
                 value={demandStatusFilter}
                 onChange={(e) => setDemandStatusFilter(e.target.value)}
-                className="bg-[#18120e] text-xs text-stone-200 rounded-xl px-3 py-2 border border-amber-500/20 focus:outline-none focus:border-amber-400 min-h-[44px]"
+                className="bg-[#18120e] text-[10px] sm:text-xs text-stone-200 rounded-lg sm:rounded-xl px-2.5 py-1.5 border border-amber-500/20 focus:outline-none focus:border-amber-400"
               >
                 <option value="All">All Statuses</option>
                 <option value="Pending">Pending</option>
@@ -434,24 +426,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           {/* Demands List */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {filteredDemands.map((demand) => (
               <div 
                 key={demand.id}
-                className="glass-panel rounded-2xl p-5 border border-amber-500/15 space-y-3 transition-all hover:border-amber-500/30"
+                className="glass-panel rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-amber-500/15 space-y-2"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/10 pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-amber-500/10 pb-2">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-white">{demand.appTitle}</h3>
-                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/25">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h3 className="text-sm font-bold text-white">{demand.appTitle}</h3>
+                      <span className="text-[9px] font-mono font-semibold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/25">
                         {demand.platform}
                       </span>
-                      <span className="text-[10px] text-stone-400">
+                      <span className="text-[9px] text-stone-400">
                         {demand.category}
                       </span>
                     </div>
-                    <div className="text-xs text-stone-400 mt-0.5 flex flex-wrap items-center gap-2">
+                    <div className="text-[10px] sm:text-xs text-stone-400 mt-0.5 flex flex-wrap items-center gap-1.5">
                       <span className="text-stone-300 font-semibold">{demand.userName}</span>
                       <span>·</span>
                       <span className="text-amber-400/90">{demand.contactMethod}: {demand.contactHandle}</span>
@@ -461,17 +453,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
 
                   {/* Status Dropdown & Delete */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <select
                       value={demand.status}
                       onChange={(e) => onUpdateDemandStatus(demand.id, e.target.value as any)}
-                      className={`text-xs font-bold rounded-xl px-3 py-2 border focus:outline-none transition-colors ${
-                        demand.status === 'Approved' ? 'bg-emerald-950/60 text-emerald-400 border-emerald-500/40' :
-                        demand.status === 'In Development' ? 'bg-amber-950/60 text-amber-400 border-amber-500/40' :
-                        demand.status === 'In Review' ? 'bg-blue-950/60 text-blue-400 border-blue-500/40' :
-                        demand.status === 'Rejected' ? 'bg-red-950/60 text-red-400 border-red-500/40' :
-                        'bg-stone-900 text-stone-300 border-stone-700'
-                      }`}
+                      className="text-[10px] sm:text-xs font-bold rounded-lg px-2 py-1 bg-stone-900 text-amber-400 border border-amber-500/30"
                     >
                       <option value="Pending">Pending</option>
                       <option value="In Review">In Review</option>
@@ -482,31 +468,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     <button
                       onClick={() => onDeleteDemand(demand.id)}
-                      className="p-2 rounded-xl bg-red-950/40 text-red-400 hover:bg-red-900/60 transition-colors"
+                      className="p-1.5 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 transition-colors"
                       title="Delete Request"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </button>
                   </div>
                 </div>
 
                 {/* Requirements Text */}
-                <div className="text-xs text-stone-300 bg-[#160f0b] p-3.5 rounded-xl border border-amber-500/10 whitespace-pre-line leading-relaxed">
-                  <div className="text-[10px] uppercase font-bold text-stone-500 mb-1">Client Specifications:</div>
+                <div className="text-[11px] sm:text-xs text-stone-300 bg-[#160f0b] p-2.5 rounded-lg border border-amber-500/10 whitespace-pre-line leading-relaxed">
+                  <div className="text-[9px] uppercase font-bold text-stone-500 mb-0.5">Client Requirements:</div>
                   {demand.requirements}
                 </div>
 
                 {/* Timeline & Budget badges */}
-                <div className="flex flex-wrap items-center gap-3 text-xs text-stone-400 pt-1">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-stone-400 pt-0.5">
                   {demand.timeline && (
                     <div className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                      <Clock className="w-3 h-3 text-amber-400" />
                       <span>Timeline: <strong className="text-stone-200">{demand.timeline}</strong></span>
                     </div>
                   )}
                   {demand.budget && (
-                    <div className="flex items-center gap-1">
-                      <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
+                    <div>
                       <span>Budget: <strong className="text-stone-200">{demand.budget}</strong></span>
                     </div>
                   )}
@@ -516,12 +501,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             ))}
 
             {filteredDemands.length === 0 && (
-              <div className="text-center py-16 glass-panel rounded-3xl space-y-2">
-                <MessageSquarePlus className="w-8 h-8 text-stone-600 mx-auto" />
-                <div className="text-sm font-bold text-stone-300">No client demands in this category</div>
-                <p className="text-xs text-stone-500">
-                  When visitors submit custom app requests, they appear here instantly.
-                </p>
+              <div className="text-center py-10 glass-panel rounded-2xl space-y-1">
+                <MessageSquarePlus className="w-6 h-6 text-stone-600 mx-auto" />
+                <div className="text-xs font-bold text-stone-300">No demands found</div>
               </div>
             )}
           </div>
@@ -531,31 +513,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* Publish / Edit Modal Form */}
       {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-[#140e0b] border border-amber-500/30 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-5 sm:p-8 space-y-5">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3">
+          <div className="bg-[#140e0b] border border-amber-500/30 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-8 space-y-4">
             
-            <div className="flex items-center justify-between border-b border-amber-500/15 pb-4">
+            <div className="flex items-center justify-between border-b border-amber-500/15 pb-3">
               <div>
-                <h2 className="text-xl font-display font-bold text-white">
-                  {editingApp ? `Edit: ${editingApp.app_name}` : 'Publish New Application'}
+                <h2 className="text-base sm:text-xl font-display font-bold text-white">
+                  {editingApp ? `Edit: ${editingApp.app_name}` : 'Publish New App'}
                 </h2>
-                <p className="text-xs text-stone-400">
-                  Hadi88 Apps distribution architecture.
+                <p className="text-[10px] sm:text-xs text-stone-400">
+                  Hadi88 Apps mobile architecture.
                 </p>
               </div>
               <button
                 onClick={() => setIsUploadModalOpen(false)}
-                className="p-2 rounded-xl glass-panel text-stone-400 hover:text-white"
+                className="p-1.5 rounded-lg glass-panel text-stone-400 hover:text-white"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitForm} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
+            <form onSubmit={handleSubmitForm} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
+                  <label className="block text-[10px] sm:text-xs font-semibold text-stone-300 mb-1">
                     Application Name *
                   </label>
                   <input
@@ -564,13 +545,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     value={formData.app_name}
                     onChange={(e) => setFormData({ ...formData, app_name: e.target.value })}
                     placeholder="e.g. Zenith Workflow"
-                    className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white min-h-[44px]"
+                    className="w-full glass-input rounded-lg px-3 py-1.5 text-xs text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
-                    Developer / Studio *
+                  <label className="block text-[10px] sm:text-xs font-semibold text-stone-300 mb-1">
+                    Developer *
                   </label>
                   <input
                     type="text"
@@ -578,31 +559,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     value={formData.developer_name}
                     onChange={(e) => setFormData({ ...formData, developer_name: e.target.value })}
                     placeholder="e.g. Hadi88 Studio"
-                    className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white min-h-[44px]"
+                    className="w-full glass-input rounded-lg px-3 py-1.5 text-xs text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
-                    Package Name (SlugField)
+                  <label className="block text-[10px] sm:text-xs font-semibold text-stone-300 mb-1">
+                    Package Name (Slug)
                   </label>
                   <input
                     type="text"
                     value={formData.package_name}
                     onChange={(e) => setFormData({ ...formData, package_name: e.target.value })}
                     placeholder="e.g. com.hadi88.zenith"
-                    className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white font-mono min-h-[44px]"
+                    className="w-full glass-input rounded-lg px-3 py-1.5 text-xs text-white font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
+                  <label className="block text-[10px] sm:text-xs font-semibold text-stone-300 mb-1">
                     Category *
                   </label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value as AppCategory })}
-                    className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white min-h-[44px]"
+                    className="w-full glass-input rounded-lg px-3 py-1.5 text-xs text-white"
                   >
                     {CATEGORIES.map(c => (
                       <option key={c} value={c}>{c}</option>
@@ -611,113 +592,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
-                    Version (SemVer)
+                  <label className="block text-[10px] sm:text-xs font-semibold text-stone-300 mb-1">
+                    Version
                   </label>
                   <input
                     type="text"
                     value={formData.version}
                     onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                     placeholder="1.0.0"
-                    className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white font-mono min-h-[44px]"
+                    className="w-full glass-input rounded-lg px-3 py-1.5 text-xs text-white font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
-                    File Size (Display)
+                  <label className="block text-[10px] sm:text-xs font-semibold text-stone-300 mb-1">
+                    File Size
                   </label>
                   <input
                     type="text"
                     value={formData.file_size}
                     onChange={(e) => setFormData({ ...formData, file_size: e.target.value })}
                     placeholder="45 MB"
-                    className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white font-mono min-h-[44px]"
+                    className="w-full glass-input rounded-lg px-3 py-1.5 text-xs text-white font-mono"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
-                    Initial Rating (1.0 - 5.0)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="1.0"
-                    max="5.0"
-                    value={formData.rating}
-                    onChange={(e) => setFormData({ ...formData, rating: parseFloat(e.target.value) || 4.5 })}
-                    className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white font-mono min-h-[44px]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
-                    APK Package File
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.apk_file}
-                    onChange={(e) => setFormData({ ...formData, apk_file: e.target.value })}
-                    placeholder="appname_v1.0.0.apk"
-                    className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white font-mono min-h-[44px]"
-                  />
-                </div>
-
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-300 mb-1">
+                <label className="block text-[10px] sm:text-xs font-semibold text-stone-300 mb-1">
                   Full Description
                 </label>
                 <textarea
-                  rows={4}
+                  rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Detailed breakdown of application architecture and capabilities..."
-                  className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white"
+                  placeholder="App capabilities and description..."
+                  className="w-full glass-input rounded-lg px-3 py-2 text-xs text-white"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-stone-300 mb-1">
-                  Release Notes / What's New
-                </label>
-                <textarea
-                  rows={2}
-                  value={formData.whats_new}
-                  onChange={(e) => setFormData({ ...formData, whats_new: e.target.value })}
-                  placeholder="• Fixed memory leaks&#10;• Added dark mode support"
-                  className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white font-mono"
-                />
-              </div>
-
-              <div className="flex items-center gap-3 pt-2">
-                <input
-                  type="checkbox"
-                  id="featured-checkbox"
-                  checked={formData.featured}
-                  onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
-                  className="w-4 h-4 accent-amber-500 rounded"
-                />
-                <label htmlFor="featured-checkbox" className="text-xs text-stone-300">
-                  Showcase in Hero Featured Spotlight
-                </label>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-amber-500/15">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-amber-500/15">
                 <button
                   type="button"
                   onClick={() => setIsUploadModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl glass-panel text-xs text-stone-300 hover:text-white min-h-[44px]"
+                  className="px-3 py-1.5 rounded-lg glass-panel text-xs text-stone-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs shadow-lg shadow-amber-500/20 min-h-[44px]"
+                  className="px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs shadow-md"
                 >
-                  {editingApp ? 'Save Changes' : 'Publish Application'}
+                  {editingApp ? 'Save' : 'Publish'}
                 </button>
               </div>
             </form>
@@ -728,16 +654,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* Delete App Confirmation Modal */}
       {deletingAppId && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#160f0b] border border-red-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <h3 className="text-base font-bold text-white">Delete Application?</h3>
-            <p className="text-xs text-stone-400">
-              Are you sure you want to delete this app from the store? This will immediately remove the APK package and all associated stats.
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3">
+          <div className="bg-[#160f0b] border border-red-500/30 rounded-xl p-4 max-w-sm w-full space-y-3 shadow-xl">
+            <h3 className="text-sm font-bold text-white">Delete Application?</h3>
+            <p className="text-[11px] text-stone-400">
+              Remove this app and all associated stats from the store?
             </p>
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-1">
               <button
                 onClick={() => setDeletingAppId(null)}
-                className="px-3 py-1.5 rounded-xl glass-panel text-xs text-stone-300 hover:text-white min-h-[40px]"
+                className="px-3 py-1 rounded-lg glass-panel text-xs text-stone-300"
               >
                 Cancel
               </button>
@@ -746,9 +672,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onDeleteApp(deletingAppId);
                   setDeletingAppId(null);
                 }}
-                className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs min-h-[40px]"
+                className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs"
               >
-                Confirm Delete
+                Delete
               </button>
             </div>
           </div>
