@@ -10,8 +10,11 @@ urlpatterns = [
     # ----------------------------------------------------
     path('', views.AppCatalogView.as_view(), name='app_catalog'),
     path('api/search/', views.live_search_ajax, name='live_search_ajax'),
-    path('app/<slug:package_name>/', views.AppDetailView.as_view(), name='app_detail'),
-    path('app/<slug:package_name>/download/', views.download_apk, name='download_apk'),
+    
+    # Changed <slug:> to <str:> to allow dots (.) in package names:
+    path('app/<str:package_name>/', views.AppDetailView.as_view(), name='app_detail'),
+    path('app/<str:package_name>/download/', views.download_apk, name='download_apk'),
+    
     path('ask-for-app/', views.contact_admin_demand, name='contact_admin_demand'),
 
     # ----------------------------------------------------
