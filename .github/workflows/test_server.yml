@@ -20,13 +20,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       # ----------------------------------------------------
       # 1. INSTALL & SETUP RCLONE
@@ -113,9 +111,9 @@ jobs:
       # ----------------------------------------------------
       - name: Create or Update Superuser
         env:
-          DJANGO_SUPERUSER_USERNAME: ${{ secrets.SUPERUSER_USERNAME }}
-          DJANGO_SUPERUSER_EMAIL: ${{ secrets.SUPERUSER_EMAIL }}
-          DJANGO_SUPERUSER_PASSWORD: ${{ secrets.SUPERUSER_PASSWORD }}
+          SUPERUSER_USERNAME: ${{ secrets.SUPERUSER_USERNAME }}
+          SUPERUSER_EMAIL: ${{ secrets.SUPERUSER_EMAIL }}
+          SUPERUSER_PASSWORD: ${{ secrets.SUPERUSER_PASSWORD }}
         run: |
           python - << 'EOF'
           import os, django
@@ -124,9 +122,9 @@ jobs:
           from django.contrib.auth import get_user_model
           
           User = get_user_model()
-          username = os.getenv('DJANGO_SUPERUSER_USERNAME', 'admin')
-          email = os.getenv('DJANGO_SUPERUSER_EMAIL', 'admin@example.com')
-          password = os.getenv('DJANGO_SUPERUSER_PASSWORD', 'admin1234')
+          username = os.getenv('SUPERUSER_USERNAME', 'admin')
+          email = os.getenv('SUPERUSER_EMAIL', 'admin@example.com')
+          password = os.getenv('SUPERUSER_PASSWORD', 'admin1234')
 
           if not User.objects.filter(username=username).exists():
               User.objects.create_superuser(username=username, email=email, password=password)
