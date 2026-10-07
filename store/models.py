@@ -128,3 +128,26 @@ class AppDemand(models.Model):
 
     def __str__(self):
         return f"{self.app_title} by {self.user_name} [{self.status}]"
+
+
+class AppReview(models.Model):
+    """
+    User Reviews & Comments System for Verified APK Installs
+    """
+    app = models.ForeignKey(App, on_delete=models.CASCADE, related_name='user_reviews')
+    user_name = models.CharField(max_length=100, verbose_name="Reviewer Name")
+    user_avatar = models.URLField(blank=True, default='')
+    rating = models.PositiveSmallIntegerField(default=5, verbose_name="Star Rating (1-5)")
+    comment = models.TextField(verbose_name="User Review")
+    device_model = models.CharField(max_length=100, blank=True, default="Android Device")
+    helpful_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "App Review"
+        verbose_name_plural = "App Reviews"
+
+    def __str__(self):
+        return f"{self.user_name} on {self.app.app_name} ({self.rating}★)"
+

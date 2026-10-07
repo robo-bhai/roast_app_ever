@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import user_passes_test
-from .models import App, AppDemand, CATEGORY_CHOICES, DEMAND_STATUS_CHOICES
+from .models import App, AppDemand, AppReview, CATEGORY_CHOICES, DEMAND_STATUS_CHOICES
 from .forms import AppUploadForm, AppDemandForm
 import os
 import json
@@ -143,6 +143,45 @@ def contact_admin_demand(request):
         form = AppDemandForm()
 
     return render(request, 'store/contact_admin.html', {'form': form})
+
+
+def post_app_review(request, package_name):
+    """User Reviews & Comments API Endpoint for Verified APK Installs"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    app = get_object_or_404(App, package_name=package_name, is_published=True)
+    try:
+        data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+        user_name = data.get('user_name', '').strip()
+        comment = data.get('comment', '').strip()
+        rating = int(data.get('rating', 5))
+        device_model = data.get('device_model', 'Android Device').strip()
+
+        if not user_name or not comment:
+            return JsonResponse({'error': 'Name and comment are required'}, status=400)
+
+        review = AppReview.objects.create(
+            app=app,
+            user_name=user_name,
+            user_avatar=f"https://api.dicebear.com/7.x/identicon/svg?seed={user_name}",
+            rating=max(1, min(5, rating)),
+            comment=comment,
+            device_model=device_model or 'Android Device'
+        )
+
+        # Update app average rating atomically
+        avg_rating = AppReview.objects.filter(app=app).aggregate(Avg('rating'))['rating__avg'] or 5.0
+        App.objects.filter(pk=app.pk).update(rating=round(avg_rating, 1))
+
+        return JsonResponse({
+            'success': True,
+            'review_id': review.id,
+            'new_rating': round(avg_rating, 1),
+            'message': 'Review submitted successfully!'
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 # ==========================================

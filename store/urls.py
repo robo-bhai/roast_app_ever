@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/search/', views.live_search_ajax, name='live_search_ajax'),
     path('app/<slug:package_name>/', views.AppDetailView.as_view(), name='app_detail'),
     path('app/<slug:package_name>/download/', views.download_apk, name='download_apk'),
+    path('app/<slug:package_name>/review/', views.post_app_review, name='post_app_review'),
     path('ask-for-app/', views.contact_admin_demand, name='contact_admin_demand'),
 
     # ----------------------------------------------------

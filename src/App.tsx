@@ -17,6 +17,7 @@ import { AdminLogin } from './components/AdminLogin';
 import { DjangoCodeViewer } from './components/DjangoCodeViewer';
 import { ContactAdminModal } from './components/ContactAdminModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { downloadAppApk } from './utils/apkGenerator';
 import { 
   Sparkles, ShieldAlert, Layers, ShieldCheck, 
@@ -213,6 +214,46 @@ export default function App() {
     showToast('Application removed from store');
   };
 
+  const handleAddReview = (appId: string, newReview: import('./types/app').AppReview) => {
+    setApps((prev) =>
+      prev.map((a) => {
+        if (a.id === appId) {
+          const existingReviews = a.reviews || [];
+          const updatedReviews = [newReview, ...existingReviews];
+          const newRating = Number(
+            (updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length).toFixed(1)
+          );
+          return {
+            ...a,
+            rating: newRating,
+            reviews_count: (a.reviews_count || existingReviews.length) + 1,
+            reviews: updatedReviews
+          };
+        }
+        return a;
+      })
+    );
+
+    if (selectedApp && selectedApp.id === appId) {
+      setSelectedApp((prev) => {
+        if (!prev) return null;
+        const existingReviews = prev.reviews || [];
+        const updatedReviews = [newReview, ...existingReviews];
+        const newRating = Number(
+          (updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length).toFixed(1)
+        );
+        return {
+          ...prev,
+          rating: newRating,
+          reviews_count: (prev.reviews_count || existingReviews.length) + 1,
+          reviews: updatedReviews
+        };
+      });
+    }
+
+    showToast('Review posted! Thank you for your feedback.');
+  };
+
   const handleSubmitDemand = (newDemand: AppDemandRequest) => {
     setDemands((prev) => [newDemand, ...prev]);
     showToast(`Application demand for "${newDemand.appTitle}" sent to Hadi88 team!`);
@@ -327,6 +368,9 @@ export default function App() {
           )}
         </div>
       </div>
+
+      {/* Top Banner (PWA Native App Install Prompt) */}
+      <PWAInstallBanner />
 
       {/* Top Navigation (Only Users Controls: NO Admin Button visible here!) */}
       <Navbar
@@ -543,6 +587,7 @@ export default function App() {
           onDownloadApk={handleDownloadApk}
           allApps={apps}
           onSelectApp={(app) => setSelectedApp(app)}
+          onAddReview={handleAddReview}
         />
       )}
 

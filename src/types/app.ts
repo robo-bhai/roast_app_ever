@@ -9,13 +9,25 @@ export type AppCategory =
   | 'Photography'
   | 'Health & Fitness';
 
+export interface VirusTotalReport {
+  status: 'clean' | 'verified';
+  detections: number; // e.g. 0
+  totalVendors: number; // e.g. 72
+  scanDate: string;
+  sha256: string;
+  badges: string[]; // ['No Adware', 'No Spyware', 'Clean Signature', 'Google Play Protect Compatible']
+}
+
 export interface AppReview {
   id: string;
+  appId?: string;
   userName: string;
   userAvatar: string;
-  rating: number;
+  rating: number; // 1 to 5
   date: string;
   comment: string;
+  device?: string; // e.g. Samsung Galaxy S24, Pixel 8
+  helpfulCount?: number;
 }
 
 export interface AppDemandRequest {
@@ -58,6 +70,8 @@ export interface AppModel {
   is_published?: boolean;
   min_android_version?: string;
   content_rating?: string;
+  safety?: VirusTotalReport;
+  reviews?: AppReview[];
 }
 
 export interface DjangoFile {

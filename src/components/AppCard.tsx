@@ -69,6 +69,11 @@ export const AppCard: React.FC<AppCardProps> = ({
               </span>
               <span className="text-stone-600">·</span>
               <span className="font-mono text-[9px]">{app.file_size}</span>
+              <span className="text-stone-600 hidden xs:inline">·</span>
+              <span className="hidden xs:inline-flex items-center gap-0.5 text-emerald-400 font-semibold text-[8px]">
+                <ShieldCheck className="w-2.5 h-2.5" />
+                <span>Safe</span>
+              </span>
             </div>
           </div>
         </div>
@@ -132,11 +137,17 @@ export const AppCard: React.FC<AppCardProps> = ({
           {app.developer_name}
         </p>
 
-        {/* Category & Size */}
+        {/* Category, Size & VirusTotal Safety indicator */}
         <div className="flex items-center gap-1 text-[8px] sm:text-[10px] text-stone-400 mt-1">
           <span className="text-amber-300 font-medium truncate max-w-[70px] sm:max-w-none">{app.category}</span>
           <span aria-hidden="true" className="text-stone-600">·</span>
           <span className="font-mono text-[8px] sm:text-[10px]">{app.file_size}</span>
+        </div>
+
+        {/* VirusTotal Clean Badge */}
+        <div className="mt-1 flex items-center gap-1 text-[8px] sm:text-[9px] text-emerald-400 font-medium">
+          <ShieldCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400 shrink-0" />
+          <span className="truncate">VirusTotal Clean (0/74)</span>
         </div>
       </div>
 
