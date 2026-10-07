@@ -252,22 +252,25 @@ export default function App() {
   };
 
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: apps.length };
-    apps.forEach((a) => {
+    const published = apps.filter(a => a.is_published !== false);
+    const counts: Record<string, number> = { All: published.length };
+    published.forEach((a) => {
       counts[a.category] = (counts[a.category] || 0) + 1;
     });
     return counts;
   }, [apps]);
 
   const filteredApps = useMemo(() => {
-    if (selectedCategory === 'All') return apps;
-    return apps.filter((a) => a.category === selectedCategory);
+    const published = apps.filter(a => a.is_published !== false);
+    if (selectedCategory === 'All') return published;
+    return published.filter((a) => a.category === selectedCategory);
   }, [apps, selectedCategory]);
 
   const featuredApps = useMemo(() => {
-    const explicitlyFeatured = apps.filter((a) => a.featured);
+    const published = apps.filter(a => a.is_published !== false);
+    const explicitlyFeatured = published.filter((a) => a.featured);
     if (explicitlyFeatured.length >= 3) return explicitlyFeatured;
-    return apps.slice(0, 4);
+    return published.slice(0, 4);
   }, [apps]);
 
   const paginatedApps = useMemo(() => {

@@ -11,25 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-hadi88-apps-secure-production-key-2026')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
-
-# Cloudflare Tunnels aur kisi bhi domain ko allow karne ke liye
-ALLOWED_HOSTS = [
-    '*',
-    'api.uqn88.store',
-    'app.uqn88.store',
-]
-
-# Cloudflare Tunnel URLs, Custom Domains aur Localhost ke liye CSRF trusted origins
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.trycloudflare.com',
-    'https://*.uqn88.store',
-    'https://api.uqn88.store',
-    'https://app.uqn88.store',
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-    'http://localhost:3000',
-]
-
+ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -44,8 +26,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # WhiteNoise Middleware static CSS/JS/Images serve karne ke liye (SecurityMiddleware ke foran baad):
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -59,10 +39,7 @@ ROOT_URLCONF = 'appstore_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            BASE_DIR / 'templates',
-            BASE_DIR / 'dist', # React build output directory (agar build serve karna ho)
-        ],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -97,20 +74,16 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-
-# Agar static directory exist nahi karti to Django error na de iske liye checking:
-STATICFILES_DIRS = [
-    path for path in [BASE_DIR / 'static', BASE_DIR / 'dist'] if path.exists()
-]
-
+STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-# WhiteNoise storage handler for static file caching & compression
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (Uploaded APKs, Icons, Banners)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+LOGIN_URL = '/admin/manage/login/'
+LOGIN_REDIRECT_URL = '/admin/manage/'
+LOGOUT_REDIRECT_URL = '/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

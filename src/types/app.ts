@@ -30,7 +30,7 @@ export interface AppDemandRequest {
   requirements: string;
   budget?: string;
   timeline?: string;
-  status: 'Pending' | 'In Review' | 'Approved' | 'In Development' | 'Rejected';
+  status: 'Pending' | 'In Review' | 'Approved' | 'In Development' | 'Completed' | 'Rejected';
   submittedAt: string;
   adminNotes?: string;
 }
@@ -55,6 +55,7 @@ export interface AppModel {
   whats_new?: string;
   screenshots?: string[];
   featured?: boolean;
+  is_published?: boolean;
   min_android_version?: string;
   content_rating?: string;
 }

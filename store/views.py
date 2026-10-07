@@ -1,14 +1,16 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView
-from django.http import JsonResponse, FileResponse, Http404
-from django.db.models import Q, F, Sum, Avg
+from django.http import JsonResponse, FileResponse, Http404, HttpResponse
+from django.db.models import Q, F, Sum, Avg, Count
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import user_passes_test
-from .models import App, AppDemand, CATEGORY_CHOICES
+from .models import App, AppDemand, CATEGORY_CHOICES, DEMAND_STATUS_CHOICES
 from .forms import AppUploadForm, AppDemandForm
 import os
+import json
+from datetime import datetime
 
 def staff_required(view_func):
     """Decorator ensuring only authenticated admin/staff can access /admin/manage/"""
@@ -26,7 +28,8 @@ def staff_required(view_func):
 class AppCatalogView(ListView):
     """
     Public User Storefront - Exactly 18 apps per page with pagination
-    Strictly displays public uploaded apps and 'Ask for App' intake
+    Strictly displays public uploaded apps and 'Ask for App' intake.
+    Only is_published=True apps are visible to public users!
     """
     model = App
     template_name = 'store/index.html'
@@ -93,6 +96,9 @@ class AppDetailView(DetailView):
     slug_field = 'package_name'
     slug_url_kwarg = 'package_name'
 
+    def get_queryset(self):
+        return App.objects.filter(is_published=True)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['related_apps'] = App.objects.filter(
@@ -145,7 +151,7 @@ def contact_admin_demand(request):
 
 def admin_login_view(request):
     """Secure Admin Login at /admin/manage/login/"""
-    if request.user.is_authenticated and request.user.is_staff:
+    if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
         return redirect('admin_manage')
 
     if request.method == 'POST':
@@ -177,16 +183,45 @@ def admin_logout_view(request):
 def admin_dashboard(request):
     """
     Custom Secured Route: /admin/manage/
-    Full administrative control: Publish apps, edit apps, delete apps, manage client demands.
+    Full administrative control: Publish apps, edit apps, delete apps,
+    toggle live public status, feature apps, manage client demands, export data.
     """
     apps = App.objects.all().order_by('-created_at')
     demands = AppDemand.objects.all().order_by('-created_at')
 
+    # Category and status filtering
+    category_filter = request.GET.get('category', 'All')
+    status_filter = request.GET.get('status', 'All')
+    search_q = request.GET.get('q', '').strip()
+
+    if category_filter and category_filter != 'All':
+        apps = apps.filter(category=category_filter)
+    if status_filter == 'Published':
+        apps = apps.filter(is_published=True)
+    elif status_filter == 'Draft':
+        apps = apps.filter(is_published=False)
+    elif status_filter == 'Featured':
+        apps = apps.filter(is_featured=True)
+
+    if search_q:
+        apps = apps.filter(
+            Q(app_name__icontains=search_q) |
+            Q(developer_name__icontains=search_q) |
+            Q(package_name__icontains=search_q)
+        )
+
+    all_apps = App.objects.all()
     stats = {
-        'total_apps': apps.count(),
-        'total_downloads': apps.aggregate(total=Sum('downloads_count'))['total'] or 0,
-        'avg_rating': round(apps.aggregate(avg=Avg('rating'))['avg'] or 0, 2),
+        'total_apps': all_apps.count(),
+        'published_apps': all_apps.filter(is_published=True).count(),
+        'draft_apps': all_apps.filter(is_published=False).count(),
+        'featured_apps': all_apps.filter(is_featured=True).count(),
+        'total_downloads': all_apps.aggregate(total=Sum('downloads_count'))['total'] or 0,
+        'avg_rating': round(all_apps.aggregate(avg=Avg('rating'))['avg'] or 0, 2),
+        'total_demands': demands.count(),
         'pending_demands': demands.filter(status='Pending').count(),
+        'in_dev_demands': demands.filter(status='In Development').count(),
+        'approved_demands': demands.filter(status='Approved').count(),
     }
 
     upload_form = AppUploadForm()
@@ -195,6 +230,10 @@ def admin_dashboard(request):
         'demands': demands,
         'stats': stats,
         'upload_form': upload_form,
+        'categories': ['All'] + [c[0] for c in CATEGORY_CHOICES],
+        'current_category': category_filter,
+        'current_status': status_filter,
+        'search_query': search_q,
     })
 
 
@@ -226,6 +265,28 @@ def admin_edit_app(request, pk):
 
 
 @staff_required
+def admin_toggle_publish(request, pk):
+    """1-Click toggle between Published (Live) and Draft (Hidden from user store)"""
+    app = get_object_or_404(App, pk=pk)
+    app.is_published = not app.is_published
+    app.save(update_fields=['is_published', 'updated_at'])
+    status_str = "Published (Live)" if app.is_published else "Draft (Hidden from users)"
+    messages.success(request, f"'{app.app_name}' is now {status_str}.")
+    return redirect('admin_manage')
+
+
+@staff_required
+def admin_toggle_featured(request, pk):
+    """1-Click toggle hero showcase carousel status"""
+    app = get_object_or_404(App, pk=pk)
+    app.is_featured = not app.is_featured
+    app.save(update_fields=['is_featured', 'updated_at'])
+    status_str = "Featured in Hero Carousel" if app.is_featured else "Removed from Featured"
+    messages.success(request, f"'{app.app_name}' {status_str}.")
+    return redirect('admin_manage')
+
+
+@staff_required
 def admin_delete_app(request, pk):
     """Delete application from store"""
     app = get_object_or_404(App, pk=pk)
@@ -236,13 +297,41 @@ def admin_delete_app(request, pk):
 
 
 @staff_required
+def admin_bulk_action(request):
+    """Execute bulk actions across multiple selected apps"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        selected_ids = request.POST.getlist('selected_apps')
+        if not selected_ids:
+            messages.warning(request, "No applications selected for bulk operation.")
+            return redirect('admin_manage')
+
+        apps_qs = App.objects.filter(id__in=selected_ids)
+        count = apps_qs.count()
+
+        if action == 'publish':
+            apps_qs.update(is_published=True)
+            messages.success(request, f"Successfully published {count} applications.")
+        elif action == 'unpublish':
+            apps_qs.update(is_published=False)
+            messages.success(request, f"Set {count} applications to Draft.")
+        elif action == 'delete':
+            apps_qs.delete()
+            messages.success(request, f"Deleted {count} applications.")
+        else:
+            messages.warning(request, "Unknown bulk action.")
+
+    return redirect('admin_manage')
+
+
+@staff_required
 def admin_update_demand_status(request, pk):
     """Update status of client on-demand app request"""
     demand = get_object_or_404(AppDemand, pk=pk)
     new_status = request.POST.get('status')
     if new_status in dict(DEMAND_STATUS_CHOICES):
         demand.status = new_status
-        demand.save()
+        demand.save(update_fields=['status'])
         messages.success(request, f"Demand '{demand.app_title}' marked as '{new_status}'.")
     return redirect('admin_manage')
 
@@ -254,3 +343,60 @@ def admin_delete_demand(request, pk):
     demand.delete()
     messages.success(request, "Demand request deleted.")
     return redirect('admin_manage')
+
+
+@staff_required
+def admin_export_catalog_json(request):
+    """Export the entire Hadi88 Apps store catalog as downloadable JSON backup"""
+    apps = App.objects.all()
+    demands = AppDemand.objects.all()
+
+    catalog_data = {
+        'exported_at': datetime.utcnow().isoformat(),
+        'store_name': 'Hadi88 Apps',
+        'stats': {
+            'total_apps': apps.count(),
+            'total_downloads': apps.aggregate(total=Sum('downloads_count'))['total'] or 0,
+            'total_demands': demands.count(),
+        },
+        'apps': [
+            {
+                'id': a.id,
+                'name': a.app_name,
+                'package_name': a.package_name,
+                'developer': a.developer_name,
+                'category': a.category,
+                'version': a.version,
+                'file_size': a.file_size,
+                'downloads_count': a.downloads_count,
+                'rating': float(a.rating),
+                'is_published': a.is_published,
+                'is_featured': a.is_featured,
+                'description': a.description,
+                'created_at': a.created_at.isoformat() if a.created_at else None,
+            }
+            for a in apps
+        ],
+        'demands': [
+            {
+                'id': d.id,
+                'user_name': d.user_name,
+                'email': d.email,
+                'app_title': d.app_title,
+                'platform': d.platform,
+                'category': d.category,
+                'status': d.status,
+                'requirements': d.requirements,
+                'created_at': d.created_at.isoformat() if d.created_at else None,
+            }
+            for d in demands
+        ]
+    }
+
+    response = HttpResponse(
+        json.dumps(catalog_data, indent=2),
+        content_type='application/json'
+    )
+    filename = f"hadi88_catalog_backup_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response

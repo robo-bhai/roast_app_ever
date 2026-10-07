@@ -6,15 +6,13 @@ from . import views
 urlpatterns = [
     # ----------------------------------------------------
     # 1. PUBLIC USERS ACCESS (localhost:8000/)
-    # Only browsing apps, searching, and submitting demands
+    # Strictly for browsing apps, searching, and submitting demands
+    # NO admin buttons or links visible here
     # ----------------------------------------------------
     path('', views.AppCatalogView.as_view(), name='app_catalog'),
     path('api/search/', views.live_search_ajax, name='live_search_ajax'),
-    
-    # Changed <slug:> to <str:> to allow dots (.) in package names:
-    path('app/<str:package_name>/', views.AppDetailView.as_view(), name='app_detail'),
-    path('app/<str:package_name>/download/', views.download_apk, name='download_apk'),
-    
+    path('app/<slug:package_name>/', views.AppDetailView.as_view(), name='app_detail'),
+    path('app/<slug:package_name>/download/', views.download_apk, name='download_apk'),
     path('ask-for-app/', views.contact_admin_demand, name='contact_admin_demand'),
 
     # ----------------------------------------------------
@@ -27,6 +25,10 @@ urlpatterns = [
     path('admin/manage/publish/', views.admin_publish_app, name='admin_publish_app'),
     path('admin/manage/app/<int:pk>/edit/', views.admin_edit_app, name='admin_edit_app'),
     path('admin/manage/app/<int:pk>/delete/', views.admin_delete_app, name='admin_delete_app'),
+    path('admin/manage/app/<int:pk>/toggle-publish/', views.admin_toggle_publish, name='admin_toggle_publish'),
+    path('admin/manage/app/<int:pk>/toggle-featured/', views.admin_toggle_featured, name='admin_toggle_featured'),
+    path('admin/manage/bulk/', views.admin_bulk_action, name='admin_bulk_action'),
+    path('admin/manage/export-catalog/', views.admin_export_catalog_json, name='admin_export_catalog_json'),
     path('admin/manage/demand/<int:pk>/status/', views.admin_update_demand_status, name='admin_update_demand_status'),
     path('admin/manage/demand/<int:pk>/delete/', views.admin_delete_demand, name='admin_delete_demand'),
 ]
