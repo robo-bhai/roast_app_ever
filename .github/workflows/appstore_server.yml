@@ -132,8 +132,11 @@ jobs:
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: |
           echo "=== Running Django Migrations (Safe Mode & Schema Upgrades) ==="
+          # Generate app-specific migrations if missing locally
           python manage.py makemigrations store || true
           python manage.py makemigrations || true
+
+          # Safely apply pending migrations without destroying existing data
           python manage.py migrate --noinput
           
           # Seed initial application catalog if empty
@@ -152,7 +155,7 @@ jobs:
           fi
           python manage.py collectstatic --noinput || true
 
-          # Verify database records
+          # Verify database records safely
           python - << 'EOF' || true
           import os, django
           os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
@@ -161,6 +164,7 @@ jobs:
           print(f"[DB Status] Total Apps in DB: {App.objects.count()}")
           print(f"[DB Status] Total Demands in DB: {AppDemand.objects.count()}")
           EOF
+
 
       # ----------------------------------------------------
       # 6. CREATE OR REFRESH SUPERUSER (SAFE - NO DATA LOSS)
