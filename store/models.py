@@ -3,6 +3,7 @@ from django.utils.text import slugify
 from django.urls import reverse
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 import os
+from urllib.parse import quote
 
 CATEGORY_CHOICES = [
     ('Games', 'Games'),
@@ -92,6 +93,48 @@ class App(models.Model):
         elif self.downloads_count >= 1_000:
             return f"{self.downloads_count / 1_000:.0f}K+"
         return str(self.downloads_count)
+
+    @property
+    def safe_icon_url(self):
+        """
+        Guaranteed working icon URL in safe mode or with Cloudinary.
+        Falls back to DiceBear SVG identicon with dark theme background.
+        """
+        if self.app_icon:
+            try:
+                url = self.app_icon.url
+                if url.startswith('http://') or url.startswith('https://'):
+                    return url
+                if os.path.exists(self.app_icon.path):
+                    return url
+            except Exception:
+                pass
+        safe_seed = quote(self.app_name)
+        return f"https://api.dicebear.com/7.x/identicon/svg?seed={safe_seed}&backgroundColor=1f140e"
+
+    @property
+    def safe_banner_url(self):
+        """
+        Guaranteed working banner image in safe mode or with Cloudinary.
+        Falls back to curated category banners from static assets.
+        """
+        if self.banner_image:
+            try:
+                url = self.banner_image.url
+                if url.startswith('http://') or url.startswith('https://'):
+                    return url
+                if os.path.exists(self.banner_image.path):
+                    return url
+            except Exception:
+                pass
+
+        if self.category == 'Games':
+            return '/images/app_cyber_strike_1791093769332.jpg'
+        elif self.category == 'Productivity':
+            return '/images/app_zenith_productivity_1791093784758.jpg'
+        elif self.category == 'Social':
+            return '/images/app_lunar_social_1791093799108.jpg'
+        return '/images/hero_app_showcase_1791093747904.jpg'
 
 
 class AppDemand(models.Model):

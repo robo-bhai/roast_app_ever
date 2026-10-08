@@ -80,7 +80,7 @@ def live_search_ajax(request):
             'package_name': a.package_name,
             'developer': a.developer_name,
             'category': a.category,
-            'icon_url': a.app_icon.url if a.app_icon else '',
+            'icon_url': a.safe_icon_url,
             'rating': float(a.rating),
             'file_size': a.file_size,
             'detail_url': a.get_absolute_url(),

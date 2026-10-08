@@ -20,13 +20,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
+       #   cache: 'pip'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-        #  cache: 'npm'
+         # cache: 'npm'
 
       # ----------------------------------------------------
       # 1. INSTALL & SETUP RCLONE (Google Drive CLI)
@@ -127,16 +127,28 @@ jobs:
       - name: Run Django Migrations & Collect Static
         env:
           DJANGO_SETTINGS_MODULE: appstore_project.settings
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: |
-          echo "=== Running Django Migrations (Preserving Existing Data) ==="
+          echo "=== Running Django Migrations (Safe Mode & Schema Upgrades) ==="
           python manage.py makemigrations store || true
           python manage.py makemigrations || true
           python manage.py migrate --noinput
           
-          echo "=== Collecting Static Files ==="
-          mkdir -p static staticfiles media static/images
+          # Seed initial application catalog if empty
+          python manage.py seed_apps || true
+
+          echo "=== Collecting Static Files & Syncing Safe Media Assets ==="
+          mkdir -p static staticfiles media static/images public/images media/banners media/icons
           if [ -d "src/assets/images" ]; then
             cp -r src/assets/images/* static/images/ 2>/dev/null || true
+            cp -r src/assets/images/* public/images/ 2>/dev/null || true
+            cp -r src/assets/images/* media/banners/ 2>/dev/null || true
+          fi
+          if [ -d "public/images" ]; then
+            cp -r public/images/* static/images/ 2>/dev/null || true
+            cp -r public/images/* media/banners/ 2>/dev/null || true
           fi
           python manage.py collectstatic --noinput || true
 
@@ -187,6 +199,10 @@ jobs:
       # 7. START GUNICORN BACKEND (PORT 8000)
       # ----------------------------------------------------
       - name: Start Gunicorn (Backend)
+        env:
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: |
           echo "=== Starting Gunicorn on 0.0.0.0:8000 ==="
           nohup gunicorn appstore_project.wsgi:application \

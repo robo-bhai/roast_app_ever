@@ -134,7 +134,7 @@
               if (data.results && data.results.length > 0) {
                 searchResults.innerHTML = data.results.map(app => \`
                   <a href="\${app.detail_url}" class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-amber-500/10 block">
-                    <img src="\${app.icon_url}" class="w-7 h-7 rounded-lg object-cover bg-stone-900" />
+                    <img src="\${app.icon_url}" alt="\${app.name}" onerror="this.onerror=null; this.src='https://api.dicebear.com/7.x/identicon/svg?seed=' + encodeURIComponent('\${app.name}') + '&backgroundColor=1f140e';" class="w-7 h-7 rounded-lg object-cover bg-stone-900" />
                     <div class="min-w-0 flex-1">
                       <div class="text-xs font-bold text-white truncate">\${app.name}</div>
                       <div class="text-[10px] text-stone-400 truncate">\${app.category} · \${app.file_size}</div>
