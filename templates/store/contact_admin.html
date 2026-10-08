@@ -1,6 +1,24 @@
 {% extends 'store/base.html' %}
 
-{% block title %}Ask for Your Dreaming App - Hadi88 Apps{% endblock %}
+{% block title %}Ask for App - On-Demand Custom Mobile App Development | Hadi88 Apps{% endblock %}
+
+{% block meta %}
+<meta name="description" content="Find and ask for your dreaming apps. We are building app on your demand. Submit your specifications to Hadi88 Apps engineering team for custom Android, iOS, and Web solutions.">
+<meta name="keywords" content="ask for app, custom mobile app development, on demand apps, build android app, Hadi88 Apps, custom software, find and ask for your dreaming apps">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+<meta property="og:site_name" content="Hadi88 Apps">
+<meta property="og:title" content="Ask for App - On-Demand Custom App Development | Hadi88 Apps">
+<meta property="og:description" content="Find and ask for your dreaming apps. We build custom applications on your demand.">
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}/images/hero_app_showcase_1791093747904.jpg">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ask for App - Hadi88 Apps On-Demand">
+<meta name="twitter:description" content="Find and ask for your dreaming apps. We are building app on your demand.">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}/images/hero_app_showcase_1791093747904.jpg">
+{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-6">

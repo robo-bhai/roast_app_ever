@@ -58,6 +58,53 @@ def staff_required(view_func):
     return decorated_view
 
 
+def sitemap_xml_view(request):
+    """Dynamically generated high-ranking XML Sitemap for Google Search Console & Indexing"""
+    base_url = request.build_absolute_uri('/').rstrip('/')
+    apps = App.objects.filter(is_published=True).order_by('-updated_at')
+    
+    xml_lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        '  <url>',
+        f'    <loc>{base_url}/</loc>',
+        '    <changefreq>daily</changefreq>',
+        '    <priority>1.0</priority>',
+        '  </url>',
+        '  <url>',
+        f'    <loc>{base_url}/ask-for-app/</loc>',
+        '    <changefreq>weekly</changefreq>',
+        '    <priority>0.9</priority>',
+        '  </url>',
+    ]
+    for app in apps:
+        app_url = f"{base_url}/app/{app.package_name}/"
+        lastmod = app.updated_at.strftime('%Y-%m-%d')
+        xml_lines.extend([
+            '  <url>',
+            f'    <loc>{app_url}</loc>',
+            f'    <lastmod>{lastmod}</lastmod>',
+            '    <changefreq>daily</changefreq>',
+            '    <priority>0.95</priority>',
+            '  </url>',
+        ])
+    xml_lines.append('</urlset>')
+    return HttpResponse('\n'.join(xml_lines), content_type='application/xml')
+
+
+def robots_txt_view(request):
+    """Dynamic robots.txt directing search engine crawlers to sitemap"""
+    base_url = request.build_absolute_uri('/').rstrip('/')
+    content = f"""User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin/manage/
+
+Sitemap: {base_url}/sitemap.xml
+"""
+    return HttpResponse(content, content_type='text/plain')
+
+
 # ==========================================
 # PUBLIC USER VIEWS (localhost:8000/)
 # ==========================================

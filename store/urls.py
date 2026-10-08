@@ -10,6 +10,8 @@ urlpatterns = [
     # NO admin buttons or links visible here
     # ----------------------------------------------------
     path('', views.AppCatalogView.as_view(), name='app_catalog'),
+    path('sitemap.xml', views.sitemap_xml_view, name='sitemap_xml'),
+    path('robots.txt', views.robots_txt_view, name='robots_txt'),
     path('api/search/', views.live_search_ajax, name='live_search_ajax'),
     path('app/<str:package_name>/', views.AppDetailView.as_view(), name='app_detail'),
     path('app/<str:package_name>/download/', views.download_apk, name='download_apk'),

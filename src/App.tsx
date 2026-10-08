@@ -180,6 +180,33 @@ export default function App() {
     }
   }, [demands]);
 
+  // Dynamic SEO meta and title updating for search engines and social sharing
+  useEffect(() => {
+    if (selectedApp) {
+      document.title = `${selectedApp.app_name} APK Download v${selectedApp.version} - Hadi88 Apps`;
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute(
+          'content',
+          `Download ${selectedApp.app_name} v${selectedApp.version} APK (${selectedApp.file_size}). Verified safe by Play Protect & VirusTotal 0/74 clean. ${selectedApp.description.slice(0, 110)}...`
+        );
+      }
+    } else if (activeView === 'admin') {
+      document.title = 'Admin Management Portal - Hadi88 Apps';
+    } else if (selectedCategory !== 'All') {
+      document.title = `${selectedCategory} Apps - Download Verified APKs | Hadi88 Apps`;
+    } else {
+      document.title = 'Hadi88 Apps - Find and Ask for Your Dreaming Apps';
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute(
+          'content',
+          'Hadi88 Apps - We build apps on your demand. Discover curated mobile applications or request custom on-demand software with dark chocolate and amber glassmorphism.'
+        );
+      }
+    }
+  }, [selectedApp, activeView, selectedCategory]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);

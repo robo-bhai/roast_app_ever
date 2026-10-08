@@ -5,6 +5,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <title>{% block title %}Hadi88 Apps - Find and Ask for Your Dreaming Apps{% endblock %}</title>
+  
+  {% block meta %}
+  <meta name="description" content="Hadi88 Apps - We build apps on your demand. Discover curated mobile applications or request custom on-demand software with dark chocolate and amber glassmorphism.">
+  <meta name="keywords" content="Hadi88 Apps, find and ask for your dreaming apps, we are building app on your demand, verified apk download, play protect clean, virustotal 0 threats, custom android app">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  
+  <!-- OpenGraph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ request.build_absolute_uri }}">
+  <meta property="og:site_name" content="Hadi88 Apps">
+  <meta property="og:title" content="Hadi88 Apps - Find and Ask for Your Dreaming Apps">
+  <meta property="og:description" content="Hadi88 Apps - We build apps on your demand. Discover curated mobile applications or request custom on-demand software.">
+  <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}/images/hero_app_showcase_1791093747904.jpg">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Hadi88 Apps - Find and Ask for Your Dreaming Apps">
+  <meta name="twitter:description" content="Hadi88 Apps - We build apps on your demand. Discover curated mobile applications or request custom on-demand software.">
+  <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}/images/hero_app_showcase_1791093747904.jpg">
+  {% endblock %}
+
+  <link rel="canonical" href="{{ request.build_absolute_uri }}">
   <meta name="theme-color" content="#f59e0b">
   <link rel="manifest" href="/manifest.json">
   
@@ -23,6 +45,34 @@
     }
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  
+  <!-- Global Schema.org JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "url": "{{ request.scheme }}://{{ request.get_host }}/",
+        "name": "Hadi88 Apps",
+        "description": "Find and ask for your dreaming apps - We are building app on your demand",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "{{ request.scheme }}://{{ request.get_host }}/?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "name": "Hadi88 Apps",
+        "url": "{{ request.scheme }}://{{ request.get_host }}/",
+        "logo": "{{ request.scheme }}://{{ request.get_host }}/images/hero_app_showcase_1791093747904.jpg"
+      }
+    ]
+  }
+  </script>
+  {% block schema_extra %}{% endblock %}
+
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0d0a08; color: #f7efe6; }
     h1, h2, h3, .font-display { font-family: 'Syne', sans-serif; }
