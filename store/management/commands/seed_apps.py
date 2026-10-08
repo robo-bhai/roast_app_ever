@@ -297,7 +297,22 @@ SAMPLE_APPS = [
 class Command(BaseCommand):
     help = 'Seeds initial 24+ apps into Hadi88 Apps database for 18-items-per-page testing'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Force seeding sample apps even if applications already exist in database',
+        )
+
     def handle(self, *args, **options):
+        force = options.get('force', False)
+        # Strictly preserve user uploads: never seed if database has any apps unless explicitly forced
+        if App.objects.exists() and not force:
+            self.stdout.write(self.style.WARNING(
+                f"[seed_apps] Database already contains {App.objects.count()} apps. Skipping seed to preserve user catalog."
+            ))
+            return
+
         created_count = 0
         for data in SAMPLE_APPS:
             app, created = App.objects.get_or_create(

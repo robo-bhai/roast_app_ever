@@ -10,7 +10,44 @@ from .models import App, AppDemand, AppReview, CATEGORY_CHOICES, DEMAND_STATUS_C
 from .forms import AppUploadForm, AppDemandForm
 import os
 import json
+import subprocess
+import threading
 from datetime import datetime
+
+def trigger_cloud_backup_async():
+    """
+    Instantly checkpoints SQLite and syncs db.sqlite3, media, and apks
+    to Google Drive in a background daemon thread so user edits persist immediately!
+    """
+    def _sync():
+        try:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+        except Exception:
+            pass
+
+        rclone_conf = os.path.expanduser('~/.config/rclone/rclone.conf')
+        if os.path.exists(rclone_conf):
+            try:
+                subprocess.Popen(
+                    ['rclone', 'copyto', 'db.sqlite3', 'gdrive:AppStoreBackup/db.sqlite3', '--quiet'],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+                if os.path.exists('media'):
+                    subprocess.Popen(
+                        ['rclone', 'copy', 'media', 'gdrive:AppStoreBackup/media/', '--update', '--quiet'],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+                if os.path.exists('apks'):
+                    subprocess.Popen(
+                        ['rclone', 'copy', 'apks', 'gdrive:AppStoreBackup/apks/', '--update', '--quiet'],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+            except Exception:
+                pass
+
+    threading.Thread(target=_sync, daemon=True).start()
 
 def staff_required(view_func):
     """Decorator ensuring only authenticated admin/staff can access /admin/manage/"""
@@ -283,6 +320,7 @@ def admin_publish_app(request):
         form = AppUploadForm(request.POST, request.FILES)
         if form.is_valid():
             app = form.save()
+            trigger_cloud_backup_async()
             messages.success(request, f"Successfully published '{app.app_name}' (v{app.version}) to Hadi88 Store!")
             return redirect('admin_manage')
         else:
@@ -298,6 +336,7 @@ def admin_edit_app(request, pk):
         form = AppUploadForm(request.POST, request.FILES, instance=app)
         if form.is_valid():
             form.save()
+            trigger_cloud_backup_async()
             messages.success(request, f"Updated '{app.app_name}' details.")
             return redirect('admin_manage')
     return redirect('admin_manage')
@@ -309,6 +348,7 @@ def admin_toggle_publish(request, pk):
     app = get_object_or_404(App, pk=pk)
     app.is_published = not app.is_published
     app.save(update_fields=['is_published', 'updated_at'])
+    trigger_cloud_backup_async()
     status_str = "Published (Live)" if app.is_published else "Draft (Hidden from users)"
     messages.success(request, f"'{app.app_name}' is now {status_str}.")
     return redirect('admin_manage')
@@ -320,6 +360,7 @@ def admin_toggle_featured(request, pk):
     app = get_object_or_404(App, pk=pk)
     app.is_featured = not app.is_featured
     app.save(update_fields=['is_featured', 'updated_at'])
+    trigger_cloud_backup_async()
     status_str = "Featured in Hero Carousel" if app.is_featured else "Removed from Featured"
     messages.success(request, f"'{app.app_name}' {status_str}.")
     return redirect('admin_manage')
@@ -331,6 +372,7 @@ def admin_delete_app(request, pk):
     app = get_object_or_404(App, pk=pk)
     app_name = app.app_name
     app.delete()
+    trigger_cloud_backup_async()
     messages.success(request, f"Application '{app_name}' removed from store.")
     return redirect('admin_manage')
 
@@ -350,12 +392,15 @@ def admin_bulk_action(request):
 
         if action == 'publish':
             apps_qs.update(is_published=True)
+            trigger_cloud_backup_async()
             messages.success(request, f"Successfully published {count} applications.")
         elif action == 'unpublish':
             apps_qs.update(is_published=False)
+            trigger_cloud_backup_async()
             messages.success(request, f"Set {count} applications to Draft.")
         elif action == 'delete':
             apps_qs.delete()
+            trigger_cloud_backup_async()
             messages.success(request, f"Deleted {count} applications.")
         else:
             messages.warning(request, "Unknown bulk action.")

@@ -161,9 +161,6 @@ jobs:
                   cursor.execute("CREATE INDEX IF NOT EXISTS store_appreview_app_id_idx ON store_appreview (app_id);")
                   print("[Workflow Auto-Heal] Successfully ensured store_appreview table exists.")
           EOF
-          
-          # Seed initial application catalog if empty
-          python manage.py seed_apps || true
 
           echo "=== Collecting Static Files & Syncing Safe Media Assets ==="
           mkdir -p static staticfiles media static/images public/images media/banners media/icons
@@ -303,7 +300,7 @@ jobs:
           # This protects against unexpected runner cancellation or crashes
           (
             while true; do
-              sleep 300
+              sleep 45
               echo "[Auto-Backup Daemon] Running periodic sync to Google Drive..."
               if [ -f ~/.config/rclone/rclone.conf ]; then
                 # Safe SQLite WAL checkpoint flush
