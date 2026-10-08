@@ -29,7 +29,7 @@
       </div>
       <div class="lg:col-span-5">
         {% if hero.banner_image %}
-        <img src="{{ hero.banner_image.url }}" alt="{{ hero.app_name }}" class="w-full h-44 sm:h-72 object-cover rounded-xl sm:rounded-2xl border border-amber-500/20">
+        <img src="{{ hero.banner_image.url }}" alt="{{ hero.app_name }}" onerror="this.onerror=null; this.src='/images/hero_app_showcase_1791093747904.jpg';" class="w-full h-44 sm:h-72 object-cover rounded-xl sm:rounded-2xl border border-amber-500/20">
         {% endif %}
       </div>
     </div>
@@ -96,7 +96,7 @@
           <!-- Icon -->
           <a href="{{ app.get_absolute_url }}" class="block mb-2">
             {% if app.app_icon %}
-            <img src="{{ app.app_icon.url }}" alt="{{ app.app_name }}" class="w-full aspect-square rounded-xl object-cover bg-stone-900 border border-amber-500/15">
+            <img src="{{ app.app_icon.url }}" alt="{{ app.app_name }}" onerror="this.onerror=null; this.src='https://api.dicebear.com/7.x/identicon/svg?seed={{ app.app_name|urlencode }}&backgroundColor=1f140e';" class="w-full aspect-square rounded-xl object-cover bg-stone-900 border border-amber-500/15">
             {% else %}
             <div class="w-full aspect-square rounded-xl bg-stone-900 flex items-center justify-center font-bold text-amber-400">
               {{ app.app_name|slice:":1" }}

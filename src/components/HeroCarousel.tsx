@@ -4,6 +4,7 @@ import {
   ExternalLink, ShieldCheck, MessageSquarePlus 
 } from 'lucide-react';
 import { AppModel } from '../types/app';
+import { resolveBannerImage } from '../utils/imageUtils';
 
 interface HeroCarouselProps {
   featuredApps: AppModel[];
@@ -55,8 +56,11 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
         {currentApp.banner_image && (
           <div className="absolute inset-0 z-0 overflow-hidden">
             <img
-              src={currentApp.banner_image}
+              src={resolveBannerImage(currentApp.banner_image)}
               alt={currentApp.app_name}
+              onError={(e) => {
+                e.currentTarget.src = '/images/hero_app_showcase_1791093747904.jpg';
+              }}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover object-center transform scale-102 transition-transform duration-700 ease-out"
             />

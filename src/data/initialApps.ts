@@ -1,10 +1,10 @@
 import { AppModel } from '../types/app';
 
-// Images generated via generate_image tool
-const HERO_BANNER = '/src/assets/images/hero_app_showcase_1791093747904.jpg';
-const CYBER_STRIKE_BANNER = '/src/assets/images/app_cyber_strike_1791093769332.jpg';
-const ZENITH_BANNER = '/src/assets/images/app_zenith_productivity_1791093784758.jpg';
-const LUNAR_BANNER = '/src/assets/images/app_lunar_social_1791093799108.jpg';
+// Images generated via generate_image tool (hosted in public/images/ for universal compatibility)
+const HERO_BANNER = '/images/hero_app_showcase_1791093747904.jpg';
+const CYBER_STRIKE_BANNER = '/images/app_cyber_strike_1791093769332.jpg';
+const ZENITH_BANNER = '/images/app_zenith_productivity_1791093784758.jpg';
+const LUNAR_BANNER = '/images/app_lunar_social_1791093799108.jpg';
 
 export const INITIAL_APPS: AppModel[] = [
   {

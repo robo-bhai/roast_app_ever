@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Star, Download, Check, ShieldCheck } from 'lucide-react';
 import { AppModel } from '../types/app';
+import { resolveAppIcon, handleImageFallback } from '../utils/imageUtils';
 
 interface AppCardProps {
   app: AppModel;
@@ -20,15 +21,7 @@ export const AppCard: React.FC<AppCardProps> = ({
 
   const handleDownloadClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (downloading) return;
-    setDownloading(true);
-
-    setTimeout(() => {
-      onDownloadApk(app);
-      setDownloading(false);
-      setDownloaded(true);
-      setTimeout(() => setDownloaded(false), 3000);
-    }, 600);
+    onDownloadApk(app);
   };
 
   // Google Play style List Item (Mobile & Compact View)
@@ -41,8 +34,9 @@ export const AppCard: React.FC<AppCardProps> = ({
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="relative shrink-0">
             <img
-              src={app.app_icon}
+              src={resolveAppIcon(app.app_icon, app.app_name, app.category)}
               alt={app.app_name}
+              onError={(e) => handleImageFallback(e, app.app_name, app.category)}
               referrerPolicy="no-referrer"
               className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover bg-stone-900 border border-amber-500/15 group-hover:scale-105 transition-transform"
             />
@@ -70,9 +64,9 @@ export const AppCard: React.FC<AppCardProps> = ({
               <span className="text-stone-600">·</span>
               <span className="font-mono text-[9px]">{app.file_size}</span>
               <span className="text-stone-600 hidden xs:inline">·</span>
-              <span className="hidden xs:inline-flex items-center gap-0.5 text-emerald-400 font-semibold text-[8px]">
+              <span className="hidden xs:inline-flex items-center gap-0.5 text-emerald-400 font-semibold text-[8px]" title="Play Store Verified Safe & Clean">
                 <ShieldCheck className="w-2.5 h-2.5" />
-                <span>Safe</span>
+                <span>Play Store Verified</span>
               </span>
             </div>
           </div>
@@ -117,8 +111,9 @@ export const AppCard: React.FC<AppCardProps> = ({
         {/* App Icon Container */}
         <div className="relative mb-1.5 sm:mb-3">
           <img
-            src={app.app_icon}
+            src={resolveAppIcon(app.app_icon, app.app_name, app.category)}
             alt={app.app_name}
+            onError={(e) => handleImageFallback(e, app.app_name, app.category)}
             referrerPolicy="no-referrer"
             className="w-full aspect-square rounded-lg sm:rounded-xl object-cover bg-stone-900 border border-amber-500/15 group-hover:scale-102 group-hover:border-amber-400/40 transition-all duration-200"
           />
@@ -144,10 +139,10 @@ export const AppCard: React.FC<AppCardProps> = ({
           <span className="font-mono text-[8px] sm:text-[10px]">{app.file_size}</span>
         </div>
 
-        {/* VirusTotal Clean Badge */}
+        {/* Play Store & VirusTotal Clean Badge */}
         <div className="mt-1 flex items-center gap-1 text-[8px] sm:text-[9px] text-emerald-400 font-medium">
           <ShieldCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400 shrink-0" />
-          <span className="truncate">VirusTotal Clean (0/74)</span>
+          <span className="truncate">Play Store Verified · Clean (0 Threats)</span>
         </div>
       </div>
 

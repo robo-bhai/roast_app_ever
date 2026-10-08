@@ -18,6 +18,7 @@ import { DjangoCodeViewer } from './components/DjangoCodeViewer';
 import { ContactAdminModal } from './components/ContactAdminModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
+import { DownloadProgressModal } from './components/DownloadProgressModal';
 import { downloadAppApk } from './utils/apkGenerator';
 import { 
   Sparkles, ShieldAlert, Layers, ShieldCheck, 
@@ -129,6 +130,8 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<AppCategory>('All');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [selectedApp, setSelectedApp] = useState<AppModel | null>(null);
+  const [downloadModalApp, setDownloadModalApp] = useState<AppModel | null>(null);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isDemandModalOpen, setIsDemandModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [mobileLayout, setMobileLayout] = useState<'grid' | 'list'>('grid');
@@ -183,14 +186,17 @@ export default function App() {
   };
 
   const handleDownloadApk = (app: AppModel) => {
-    downloadAppApk(app, (appId) => {
-      setApps((prevApps) =>
-        prevApps.map((a) =>
-          a.id === appId ? { ...a, downloads_count: a.downloads_count + 1 } : a
-        )
-      );
-      showToast(`Initiated download for ${app.app_name} (${app.file_size})`);
-    });
+    setDownloadModalApp(app);
+    setIsDownloadModalOpen(true);
+  };
+
+  const handleDownloadModalComplete = (app: AppModel) => {
+    setApps((prevApps) =>
+      prevApps.map((a) =>
+        a.id === app.id ? { ...a, downloads_count: a.downloads_count + 1 } : a
+      )
+    );
+    showToast(`Verification complete · ${app.app_name} is ready for installation!`);
   };
 
   const handleAddApp = (newApp: AppModel) => {
@@ -590,6 +596,17 @@ export default function App() {
           onAddReview={handleAddReview}
         />
       )}
+
+      {/* Real-Time Safety Verified Download & Install Modal */}
+      <DownloadProgressModal
+        app={downloadModalApp}
+        isOpen={isDownloadModalOpen}
+        onClose={() => {
+          setIsDownloadModalOpen(false);
+          setDownloadModalApp(null);
+        }}
+        onDownloadComplete={handleDownloadModalComplete}
+      />
 
       {/* Contact Admin / Demand an App Modal Form (For Users on public site) */}
       <ContactAdminModal

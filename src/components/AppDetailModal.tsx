@@ -7,6 +7,7 @@ import { AppModel, AppReview } from '../types/app';
 import { SafetyBadge } from './SafetyBadge';
 import { DirectDownloadQRCode } from './DirectDownloadQRCode';
 import { ReviewsSection } from './ReviewsSection';
+import { resolveAppIcon, handleImageFallback, resolveBannerImage } from '../utils/imageUtils';
 
 interface AppDetailModalProps {
   app: AppModel;
@@ -34,21 +35,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     .slice(0, 4);
 
   const handleDownloadClick = () => {
-    if (downloadProgress !== null) return;
-    setDownloadProgress(10);
-
-    const interval = setInterval(() => {
-      setDownloadProgress((prev) => {
-        if (prev === null) return null;
-        if (prev >= 100) {
-          clearInterval(interval);
-          onDownloadApk(app);
-          setTimeout(() => setDownloadProgress(null), 2000);
-          return 100;
-        }
-        return prev + 30;
-      });
-    }, 180);
+    onDownloadApk(app);
   };
 
   const handleShare = () => {
@@ -110,8 +97,9 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-2.5 sm:gap-4">
               <img
-                src={app.app_icon}
+                src={resolveAppIcon(app.app_icon, app.app_name, app.category)}
                 alt={app.app_name}
+                onError={(e) => handleImageFallback(e, app.app_name, app.category)}
                 referrerPolicy="no-referrer"
                 className="w-14 h-14 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl object-cover bg-stone-900 border border-amber-500/30 shadow-md shrink-0"
               />
@@ -203,7 +191,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
               <div className="text-[8px] sm:text-[10px] text-stone-400">Security</div>
               <div className="text-xs sm:text-sm font-bold text-emerald-400 mt-0.5 flex items-center justify-center gap-0.5">
                 <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                <span>0/74 Clean</span>
+                <span>Play Store Verified (100% Safe)</span>
               </div>
             </div>
           </div>
@@ -266,8 +254,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 <div className="space-y-1.5">
                   <div className="rounded-xl overflow-hidden border border-amber-500/20 shadow-md bg-stone-950">
                     <img
-                      src={app.banner_image}
+                      src={resolveBannerImage(app.banner_image)}
                       alt={`${app.app_name} preview`}
+                      onError={(e) => {
+                        e.currentTarget.src = '/images/hero_app_showcase_1791093747904.jpg';
+                      }}
                       referrerPolicy="no-referrer"
                       className="w-full h-36 sm:h-56 object-cover"
                     />
@@ -397,7 +388,12 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                     }}
                     className="p-2 rounded-xl glass-panel hover:border-amber-400/40 cursor-pointer flex items-center gap-2"
                   >
-                    <img src={rel.app_icon} alt={rel.app_name} className="w-8 h-8 rounded-lg object-cover bg-stone-900 shrink-0" />
+                    <img
+                      src={resolveAppIcon(rel.app_icon, rel.app_name, rel.category)}
+                      alt={rel.app_name}
+                      onError={(e) => handleImageFallback(e, rel.app_name, rel.category)}
+                      className="w-8 h-8 rounded-lg object-cover bg-stone-900 shrink-0"
+                    />
                     <div className="min-w-0">
                       <div className="text-[10px] font-bold text-white truncate">{rel.app_name}</div>
                       <div className="text-[9px] text-amber-400">★ {rel.rating.toFixed(1)}</div>

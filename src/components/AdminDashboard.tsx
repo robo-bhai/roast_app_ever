@@ -7,6 +7,7 @@ import {
   Send, AlertTriangle, ArrowRight, RefreshCw, BarChart3, Database
 } from 'lucide-react';
 import { AppModel, AppCategory, AppDemandRequest } from '../types/app';
+import { resolveAppIcon, handleImageFallback } from '../utils/imageUtils';
 
 interface AdminDashboardProps {
   apps: AppModel[];
@@ -637,8 +638,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <td className="p-3">
                       <div className="flex items-center gap-2.5">
                         <img 
-                          src={app.app_icon} 
+                          src={resolveAppIcon(app.app_icon, app.app_name, app.category)} 
                           alt="" 
+                          onError={(e) => handleImageFallback(e, app.app_name, app.category)}
                           className="w-8 h-8 rounded-lg object-cover bg-stone-900 border border-amber-500/20 shrink-0" 
                         />
                         <div className="min-w-0">
@@ -739,8 +741,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <img 
-                      src={app.app_icon} 
+                      src={resolveAppIcon(app.app_icon, app.app_name, app.category)} 
                       alt="" 
+                      onError={(e) => handleImageFallback(e, app.app_name, app.category)}
                       className="w-10 h-10 rounded-xl object-cover bg-stone-900 border border-amber-500/20 shrink-0" 
                     />
                     <div className="min-w-0">

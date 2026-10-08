@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, Download, Code2, LayoutDashboard, 
-  Store, MessageSquarePlus, Menu, X 
+  Store, MessageSquarePlus, Menu, X, Smartphone
 } from 'lucide-react';
 import { AppModel } from '../types/app';
+import { usePWAInstall, PWAHowToModal } from './PWAInstallBanner';
+import { resolveAppIcon, handleImageFallback } from '../utils/imageUtils';
 
 interface NavbarProps {
   apps: AppModel[];
@@ -26,8 +28,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showHowToModal, setShowHowToModal] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { triggerInstall, isStandalone } = usePWAInstall();
+
+  const handlePwaInstall = async () => {
+    await triggerInstall(() => {
+      setShowHowToModal(true);
+    });
+  };
 
   // Filter apps matching search query
   const searchResults = searchQuery.trim().length >= 1
@@ -157,8 +167,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                         }`}
                       >
                         <img
-                          src={app.app_icon}
+                          src={resolveAppIcon(app.app_icon, app.app_name, app.category)}
                           alt={app.app_name}
+                          onError={(e) => handleImageFallback(e, app.app_name, app.category)}
                           className="w-9 h-9 rounded-xl object-cover bg-stone-900 border border-amber-500/20 shrink-0"
                         />
                         <div className="flex-1 min-w-0">
@@ -187,6 +198,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Desktop Right Zone Buttons */}
           <div className="hidden sm:flex items-center gap-2 shrink-0">
+            {!isStandalone && (
+              <button
+                onClick={handlePwaInstall}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/40 shadow-sm transition-all flex items-center gap-1.5"
+                title="Install Native App (PWA)"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Install App</span>
+              </button>
+            )}
+
             <button
               onClick={() => setActiveView('store')}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
@@ -221,13 +243,24 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Mobile Right Zone Actions (Clean, un-squished) */}
-          <div className="flex sm:hidden items-center gap-2">
+          <div className="flex sm:hidden items-center gap-1.5">
+            {!isStandalone && (
+              <button
+                onClick={handlePwaInstall}
+                className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 active:scale-95"
+                title="Install App"
+              >
+                <Smartphone className="w-3 h-3" />
+                <span>Install</span>
+              </button>
+            )}
+
             <button
               onClick={onOpenDemandModal}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-black shadow-md flex items-center gap-1 whitespace-nowrap"
+              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-amber-500 text-black shadow-md flex items-center gap-1 whitespace-nowrap"
             >
-              <MessageSquarePlus className="w-3.5 h-3.5" />
-              <span>Ask for App</span>
+              <MessageSquarePlus className="w-3 h-3" />
+              <span>Ask</span>
             </button>
 
             <button
@@ -275,7 +308,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-amber-500/10 cursor-pointer"
                     >
-                      <img src={app.app_icon} alt={app.app_name} className="w-7 h-7 rounded-lg object-cover bg-stone-900 shrink-0" />
+                      <img
+                        src={resolveAppIcon(app.app_icon, app.app_name, app.category)}
+                        alt={app.app_name}
+                        onError={(e) => handleImageFallback(e, app.app_name, app.category)}
+                        className="w-7 h-7 rounded-lg object-cover bg-stone-900 shrink-0"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-bold text-white truncate">{app.app_name}</div>
                         <div className="text-[10px] text-stone-400 truncate">{app.developer_name} · {app.category}</div>
@@ -329,6 +367,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       )}
 
+      {/* Manual PWA Install Guide Modal */}
+      {showHowToModal && <PWAHowToModal onClose={() => setShowHowToModal(false)} />}
     </header>
   );
 };
