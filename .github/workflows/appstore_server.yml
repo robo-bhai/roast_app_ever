@@ -20,13 +20,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-       #   cache: 'pip'
+          cache: 'pip'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-         # cache: 'npm'
+        #  cache: 'npm'
 
       # ----------------------------------------------------
       # 1. INSTALL & SETUP RCLONE (Google Drive CLI)
@@ -132,12 +132,35 @@ jobs:
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: |
           echo "=== Running Django Migrations (Safe Mode & Schema Upgrades) ==="
-          # Generate app-specific migrations if missing locally
           python manage.py makemigrations store || true
           python manage.py makemigrations || true
+          python manage.py migrate --run-syncdb || python manage.py migrate --noinput
 
-          # Safely apply pending migrations without destroying existing data
-          python manage.py migrate --noinput
+          # Auto-heal: Ensure all models including store_appreview exist in SQLite
+          python - << 'EOF' || true
+          import os, django
+          os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
+          django.setup()
+          from django.db import connection
+          with connection.cursor() as cursor:
+              tables = connection.introspection.table_names()
+              if 'store_app' in tables and 'store_appreview' not in tables:
+                  cursor.execute("""
+                      CREATE TABLE IF NOT EXISTS store_appreview (
+                          id INTEGER PRIMARY KEY AUTOINCREMENT,
+                          user_name VARCHAR(100) NOT NULL,
+                          user_avatar VARCHAR(200) NOT NULL DEFAULT '',
+                          rating SMALLINT UNSIGNED NOT NULL DEFAULT 5,
+                          comment TEXT NOT NULL,
+                          device_model VARCHAR(100) NOT NULL DEFAULT 'Android Device',
+                          helpful_count INTEGER UNSIGNED NOT NULL DEFAULT 0,
+                          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                          app_id BIGINT NOT NULL REFERENCES store_app (id) DEFERRABLE INITIALLY DEFERRED
+                      );
+                  """)
+                  cursor.execute("CREATE INDEX IF NOT EXISTS store_appreview_app_id_idx ON store_appreview (app_id);")
+                  print("[Workflow Auto-Heal] Successfully ensured store_appreview table exists.")
+          EOF
           
           # Seed initial application catalog if empty
           python manage.py seed_apps || true
@@ -155,7 +178,7 @@ jobs:
           fi
           python manage.py collectstatic --noinput || true
 
-          # Verify database records safely
+          # Verify database records
           python - << 'EOF' || true
           import os, django
           os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
@@ -164,7 +187,6 @@ jobs:
           print(f"[DB Status] Total Apps in DB: {App.objects.count()}")
           print(f"[DB Status] Total Demands in DB: {AppDemand.objects.count()}")
           EOF
-
 
       # ----------------------------------------------------
       # 6. CREATE OR REFRESH SUPERUSER (SAFE - NO DATA LOSS)

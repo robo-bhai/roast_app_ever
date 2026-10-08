@@ -46,7 +46,7 @@ class App(models.Model):
     Hadi88 Apps - Core Application Model
     """
     app_name = models.CharField(max_length=150, verbose_name="Application Name")
-    package_name = models.SlugField(max_length=150, unique=True, verbose_name="Package Name (Slug)")
+    package_name = models.CharField(max_length=150, unique=True, db_index=True, verbose_name="Package Name (e.g. com.hadi88.app)")
     developer_name = models.CharField(max_length=120, default="Hadi88 Studio", verbose_name="Developer Name")
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='Tools', db_index=True)
     app_icon = models.ImageField(upload_to=app_icon_upload_path, verbose_name="App Icon (512x512)")
