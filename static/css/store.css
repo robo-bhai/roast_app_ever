@@ -1,0 +1,82 @@
+/* ==========================================================================
+   Hadi88 Apps - Core Production Stylesheet (Zero CDN Dependency Fallback)
+   "Find and ask for your dreaming apps" · "We are building app on your demand"
+   ========================================================================== */
+
+:root {
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-choco-950: #0d0a08;
+  --color-choco-900: #140f0c;
+  --color-choco-850: #1a130f;
+  --color-choco-800: #231b15;
+  --color-text-main: #f7efe6;
+  --color-text-muted: #a8a29e;
+  --glass-bg: rgba(22, 17, 13, 0.88);
+  --glass-border: rgba(245, 158, 11, 0.18);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--color-choco-950);
+  color: var(--color-text-main);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: 'Syne', 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+}
+
+/* Ensure images always render cleanly without overflow or broken gaps */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+img[src=""], img:not([src]) {
+  opacity: 0;
+}
+
+/* Safe image containers */
+.app-icon-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 0.75rem;
+  background-color: #1c1510;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0a08;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.6);
+}

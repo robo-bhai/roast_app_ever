@@ -31,14 +31,63 @@ PLATFORM_CHOICES = [
     ('Web App', 'Web Application / PWA'),
 ]
 
+def safe_folder_name(instance):
+    pkg = getattr(instance, 'package_name', '')
+    if pkg and pkg.strip():
+        return slugify(pkg.strip()).replace('-', '_')
+    name = getattr(instance, 'app_name', 'app')
+    return slugify(name or 'app').replace('-', '_')
+
 def app_icon_upload_path(instance, filename):
-    return f"icons/{instance.package_name}/{filename}"
+    clean_filename = os.path.basename(filename).replace(' ', '_')
+    return f"icons/{safe_folder_name(instance)}/{clean_filename}"
 
 def app_banner_upload_path(instance, filename):
-    return f"banners/{instance.package_name}/{filename}"
+    clean_filename = os.path.basename(filename).replace(' ', '_')
+    return f"banners/{safe_folder_name(instance)}/{clean_filename}"
 
 def apk_upload_path(instance, filename):
-    return f"apks/{instance.package_name}/{filename}"
+    clean_filename = os.path.basename(filename).replace(' ', '_')
+    return f"apks/{safe_folder_name(instance)}/{clean_filename}"
+
+def generate_app_icon_svg(app_name: str, category: str = 'Tools') -> str:
+    """
+    Generates a high-resolution, self-contained SVG Data URI icon.
+    Works 100% offline, requires ZERO external network calls, never breaks!
+    """
+    palettes = {
+        'Games': ('#d97706', '#b45309', '#fef3c7'),
+        'Productivity': ('#f59e0b', '#78350f', '#fffbeb'),
+        'Tools': ('#059669', '#064e3b', '#ecfdf5'),
+        'Social': ('#ec4899', '#831843', '#fdf2f8'),
+        'Entertainment': ('#8b5cf6', '#4c1d95', '#f5f3ff'),
+        'Finance': ('#10b981', '#047857', '#d1fae5'),
+        'Photography': ('#06b6d4', '#164e63', '#cffafe'),
+        'Health & Fitness': ('#f97316', '#7c2d12', '#ffedd5'),
+    }
+    c_from, c_to, c_text = palettes.get(category, ('#d97706', '#451a03', '#fef3c7'))
+    clean_name = (app_name or 'Hadi88 App').strip()
+    words = [w for w in clean_name.split() if w]
+    initials = ''.join(w[0].upper() for w in words[:2]) if words else clean_name[:2].upper()
+    safe_name = quote(clean_name)
+
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">'
+        f'<defs>'
+        f'<linearGradient id="grad-{safe_name}" x1="0%" y1="0%" x2="100%" y2="100%">'
+        f'<stop offset="0%" stop-color="{c_from}" />'
+        f'<stop offset="100%" stop-color="{c_to}" />'
+        f'</linearGradient>'
+        f'</defs>'
+        f'<rect width="128" height="128" rx="28" fill="url(#grad-{safe_name})" />'
+        f'<rect x="4" y="4" width="120" height="120" rx="24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" />'
+        f'<circle cx="64" cy="64" r="40" fill="rgba(0,0,0,0.25)" />'
+        f'<text x="64" y="73" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="34" font-weight="900" fill="{c_text}" text-anchor="middle" dominant-baseline="middle">'
+        f'{initials}'
+        f'</text>'
+        f'</svg>'
+    )
+    return f"data:image/svg+xml;utf8,{quote(svg)}"
 
 
 class App(models.Model):
@@ -97,20 +146,29 @@ class App(models.Model):
     @property
     def safe_icon_url(self):
         """
-        Guaranteed working icon URL in safe mode or with Cloudinary.
-        Falls back to DiceBear SVG identicon with dark theme background.
+        Guaranteed working icon URL in all environments:
+        1. Cloudinary or remote http(s) URL if configured
+        2. Local media file if exists on disk
+        3. Inline SVG Data URI fallback (works 100% offline, zero network calls, never breaks!)
         """
         if self.app_icon:
             try:
                 url = self.app_icon.url
                 if url.startswith('http://') or url.startswith('https://'):
                     return url
-                if os.path.exists(self.app_icon.path):
+                # Check absolute path on filesystem
+                if hasattr(self.app_icon, 'path') and os.path.exists(self.app_icon.path):
                     return url
+                # Check via Django settings.MEDIA_ROOT
+                from django.conf import settings
+                media_path = os.path.join(settings.MEDIA_ROOT, str(self.app_icon.name))
+                if os.path.exists(media_path):
+                    return f"{settings.MEDIA_URL}{self.app_icon.name}"
             except Exception:
                 pass
-        safe_seed = quote(self.app_name)
-        return f"https://api.dicebear.com/7.x/identicon/svg?seed={safe_seed}&backgroundColor=1f140e"
+
+        # Return guaranteed inline SVG icon
+        return generate_app_icon_svg(self.app_name, self.category)
 
     @property
     def safe_banner_url(self):
@@ -123,8 +181,12 @@ class App(models.Model):
                 url = self.banner_image.url
                 if url.startswith('http://') or url.startswith('https://'):
                     return url
-                if os.path.exists(self.banner_image.path):
+                if hasattr(self.banner_image, 'path') and os.path.exists(self.banner_image.path):
                     return url
+                from django.conf import settings
+                media_path = os.path.join(settings.MEDIA_ROOT, str(self.banner_image.name))
+                if os.path.exists(media_path):
+                    return f"{settings.MEDIA_URL}{self.banner_image.name}"
             except Exception:
                 pass
 

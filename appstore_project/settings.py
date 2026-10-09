@@ -78,6 +78,10 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# WhiteNoise settings for ultra-reliable static delivery without 404s
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = True
+
 # Media files (Uploaded APKs, Icons, Banners)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
