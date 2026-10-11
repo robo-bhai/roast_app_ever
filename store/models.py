@@ -3,7 +3,9 @@ from django.utils.text import slugify
 from django.urls import reverse
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 import os
+import base64
 from urllib.parse import quote
+from django.conf import settings
 
 CATEGORY_CHOICES = [
     ('Games', 'Games'),
@@ -87,7 +89,8 @@ def generate_app_icon_svg(app_name: str, category: str = 'Tools') -> str:
         f'</text>'
         f'</svg>'
     )
-    return f"data:image/svg+xml;utf8,{quote(svg)}"
+    b64 = base64.b64encode(svg.encode('utf-8')).decode('utf-8')
+    return f"data:image/svg+xml;base64,{b64}"
 
 
 class App(models.Model):
@@ -148,26 +151,34 @@ class App(models.Model):
         """
         Guaranteed working icon URL in all environments:
         1. Cloudinary or remote http(s) URL if configured
-        2. Local media file if exists on disk
-        3. Inline SVG Data URI fallback (works 100% offline, zero network calls, never breaks!)
+        2. Local media file if exists on disk across media, static, or public dirs
+        3. Inline base64 SVG Data URI fallback (works 100% offline, zero network calls, never breaks!)
         """
         if self.app_icon:
             try:
-                url = self.app_icon.url
+                url = str(self.app_icon.url)
                 if url.startswith('http://') or url.startswith('https://'):
                     return url
                 # Check absolute path on filesystem
                 if hasattr(self.app_icon, 'path') and os.path.exists(self.app_icon.path):
                     return url
-                # Check via Django settings.MEDIA_ROOT
-                from django.conf import settings
-                media_path = os.path.join(settings.MEDIA_ROOT, str(self.app_icon.name))
-                if os.path.exists(media_path):
-                    return f"{settings.MEDIA_URL}{self.app_icon.name}"
+                # Check multiple candidate directories
+                fname = str(self.app_icon.name)
+                bname = os.path.basename(fname)
+                candidates = [
+                    os.path.join(settings.MEDIA_ROOT, fname),
+                    os.path.join(settings.BASE_DIR, 'media', fname),
+                    os.path.join(settings.BASE_DIR, 'media', 'icons', bname),
+                    os.path.join(settings.BASE_DIR, 'public', 'images', bname),
+                    os.path.join(settings.BASE_DIR, 'static', 'images', bname),
+                ]
+                for cand in candidates:
+                    if os.path.exists(cand):
+                        return f"{settings.MEDIA_URL}{fname}" if cand.startswith(str(settings.MEDIA_ROOT)) else f"/images/{bname}"
             except Exception:
                 pass
 
-        # Return guaranteed inline SVG icon
+        # Return guaranteed inline base64 SVG icon
         return generate_app_icon_svg(self.app_name, self.category)
 
     @property
@@ -178,15 +189,23 @@ class App(models.Model):
         """
         if self.banner_image:
             try:
-                url = self.banner_image.url
+                url = str(self.banner_image.url)
                 if url.startswith('http://') or url.startswith('https://'):
                     return url
                 if hasattr(self.banner_image, 'path') and os.path.exists(self.banner_image.path):
                     return url
-                from django.conf import settings
-                media_path = os.path.join(settings.MEDIA_ROOT, str(self.banner_image.name))
-                if os.path.exists(media_path):
-                    return f"{settings.MEDIA_URL}{self.banner_image.name}"
+                fname = str(self.banner_image.name)
+                bname = os.path.basename(fname)
+                candidates = [
+                    os.path.join(settings.MEDIA_ROOT, fname),
+                    os.path.join(settings.BASE_DIR, 'media', fname),
+                    os.path.join(settings.BASE_DIR, 'media', 'banners', bname),
+                    os.path.join(settings.BASE_DIR, 'public', 'images', bname),
+                    os.path.join(settings.BASE_DIR, 'static', 'images', bname),
+                ]
+                for cand in candidates:
+                    if os.path.exists(cand):
+                        return f"{settings.MEDIA_URL}{fname}" if cand.startswith(str(settings.MEDIA_ROOT)) else f"/images/{bname}"
             except Exception:
                 pass
 

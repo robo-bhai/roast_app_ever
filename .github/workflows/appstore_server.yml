@@ -26,7 +26,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-       #   cache: 'npm'
+         # cache: 'npm'
 
       # ----------------------------------------------------
       # 1. INSTALL & SETUP RCLONE (Google Drive CLI)
@@ -81,17 +81,21 @@ jobs:
             echo ">>> No existing remote db.sqlite3 found on Drive. A fresh database will be initialized."
           fi
 
-          # 2. Restore Media and APKs with --update
-          echo ">>> Restoring media assets and APK files..."
-          rclone copy gdrive:AppStoreBackup/media ./media/ --update --verbose || true
-          rclone copy gdrive:AppStoreBackup/apks ./apks/ --update --verbose || true
+          # 2. Restore Media and APKs comprehensively (no missing icons or assets)
+          echo ">>> Restoring media assets, icons, banners, and APK files..."
+          mkdir -p media media/icons media/banners media/apks apks
+          rclone copy gdrive:AppStoreBackup/media ./media/ --verbose || true
+          rclone copy gdrive:AppStoreBackup/icons ./media/icons/ --verbose || true
+          rclone copy gdrive:AppStoreBackup/banners ./media/banners/ --verbose || true
+          rclone copy gdrive:AppStoreBackup/apks ./apks/ --verbose || true
+          rclone copy gdrive:AppStoreBackup/apks ./media/apks/ --verbose || true
           
           # Sync between apks/ and media/apks/ so APKs are available regardless of path!
-          mkdir -p apks media/apks
           cp -r apks/* media/apks/ 2>/dev/null || true
           cp -r media/apks/* apks/ 2>/dev/null || true
           
-          echo "Restore step completed successfully."
+          echo "Restore step completed successfully. Restored media tree:"
+          ls -R media/ || true
 
       # ----------------------------------------------------
       # 3. INSTALL CLOUDFLARED
@@ -185,6 +189,10 @@ jobs:
             mkdir -p static/admin
             cp -r staticfiles/admin/* static/admin/ 2>/dev/null || true
             echo "[Workflow] Admin static assets safely synced into static/admin/."
+          fi
+          if [ -d "static/css" ]; then
+            mkdir -p staticfiles/css
+            cp -r static/css/* staticfiles/css/ 2>/dev/null || true
           fi
 
           # Verify database records
@@ -340,6 +348,12 @@ jobs:
                 if [ -d "media" ]; then
                   rclone copy media gdrive:AppStoreBackup/media/ --update --quiet || true
                 fi
+                if [ -d "media/icons" ]; then
+                  rclone copy media/icons gdrive:AppStoreBackup/icons/ --update --quiet || true
+                fi
+                if [ -d "media/banners" ]; then
+                  rclone copy media/banners gdrive:AppStoreBackup/banners/ --update --quiet || true
+                fi
                 if [ -d "apks" ]; then
                   rclone copy apks gdrive:AppStoreBackup/apks/ --update --quiet || true
                 fi
@@ -437,12 +451,22 @@ jobs:
 
             if [ -d "media" ]; then
               echo ">>> Syncing media files (uploaded icons, banners, APKs)..."
-              rclone copy media gdrive:AppStoreBackup/media/ --update --verbose
+              rclone copy media gdrive:AppStoreBackup/media/ --verbose
+            fi
+
+            if [ -d "media/icons" ]; then
+              echo ">>> Syncing icons directly..."
+              rclone copy media/icons gdrive:AppStoreBackup/icons/ --verbose || true
+            fi
+
+            if [ -d "media/banners" ]; then
+              echo ">>> Syncing banners directly..."
+              rclone copy media/banners gdrive:AppStoreBackup/banners/ --verbose || true
             fi
 
             if [ -d "apks" ]; then
               echo ">>> Syncing apks directory..."
-              rclone copy apks gdrive:AppStoreBackup/apks/ --update --verbose
+              rclone copy apks gdrive:AppStoreBackup/apks/ --verbose
             fi
 
             echo "=== Verification of Google Drive Remote Backup ==="

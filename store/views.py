@@ -46,19 +46,25 @@ def trigger_cloud_backup_async():
                     shutil.copytree(media_apks, apks_path, dirs_exist_ok=True)
 
                 if os.path.exists(db_path):
-                    subprocess.Popen(
+                    subprocess.run(
                         ['rclone', 'copyto', db_path, 'gdrive:AppStoreBackup/db.sqlite3', '--quiet'],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                        capture_output=True, timeout=60
                     )
                 if os.path.exists(media_path):
-                    subprocess.Popen(
-                        ['rclone', 'copy', media_path, 'gdrive:AppStoreBackup/media/', '--update', '--quiet'],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    subprocess.run(
+                        ['rclone', 'copy', media_path, 'gdrive:AppStoreBackup/media/', '--quiet'],
+                        capture_output=True, timeout=90
+                    )
+                media_icons = os.path.join(media_path, 'icons')
+                if os.path.exists(media_icons):
+                    subprocess.run(
+                        ['rclone', 'copy', media_icons, 'gdrive:AppStoreBackup/icons/', '--quiet'],
+                        capture_output=True, timeout=60
                     )
                 if os.path.exists(apks_path):
-                    subprocess.Popen(
-                        ['rclone', 'copy', apks_path, 'gdrive:AppStoreBackup/apks/', '--update', '--quiet'],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    subprocess.run(
+                        ['rclone', 'copy', apks_path, 'gdrive:AppStoreBackup/apks/', '--quiet'],
+                        capture_output=True, timeout=90
                     )
             except Exception:
                 pass
@@ -144,10 +150,13 @@ class AppCatalogView(ListView):
         if category and category != 'All':
             queryset = queryset.filter(category=category)
         if query:
+            q_clean = query.strip()
             queryset = queryset.filter(
-                Q(app_name__icontains=query) |
-                Q(developer_name__icontains=query) |
-                Q(package_name__icontains=query)
+                Q(app_name__icontains=q_clean) |
+                Q(developer_name__icontains=q_clean) |
+                Q(package_name__icontains=q_clean) |
+                Q(category__icontains=q_clean) |
+                Q(description__icontains=q_clean)
             )
         return queryset
 
@@ -170,9 +179,11 @@ def live_search_ajax(request):
     matches = App.objects.filter(
         Q(app_name__icontains=query) |
         Q(developer_name__icontains=query) |
-        Q(category__icontains=query),
+        Q(category__icontains=query) |
+        Q(package_name__icontains=query) |
+        Q(description__icontains=query),
         is_published=True
-    )[:8]
+    )[:10]
 
     return JsonResponse({'results': [
         {

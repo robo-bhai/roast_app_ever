@@ -35,6 +35,11 @@ class AppUploadForm(forms.ModelForm):
             'is_published': forms.CheckboxInput(attrs={'class': 'w-5 h-5 accent-amber-500 rounded'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'is_published' in self.fields and not self.instance.pk:
+            self.fields['is_published'].initial = True
+
 
 class AppDemandForm(forms.ModelForm):
     """

@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, re_path, include
 from django.conf import settings
 from django.views.static import serve
+from django.http import HttpResponse
 import os
 
 # Ultra-safe static resolution: checks STATIC_ROOT (staticfiles), static, and public
@@ -41,6 +42,25 @@ def safe_media_serve(request, path, insecure=True):
     stat_img = os.path.join(settings.BASE_DIR, 'static', 'images', clean_filename)
     if os.path.exists(stat_img):
         return serve(request, clean_filename, document_root=os.path.join(settings.BASE_DIR, 'static', 'images'))
+    # 5. Check if file exists in media/icons or media/banners directly
+    direct_candidates = [
+        os.path.join(settings.MEDIA_ROOT, 'icons', clean_filename),
+        os.path.join(settings.MEDIA_ROOT, 'banners', clean_filename),
+    ]
+    for cand in direct_candidates:
+        if os.path.exists(cand):
+            return serve(request, clean_filename, document_root=os.path.dirname(cand))
+    # 6. Fallback for missing icon or image: return dynamic valid SVG to prevent 404
+    if any(path.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico']):
+        initials = clean_filename[:2].upper() if clean_filename else 'HD'
+        svg = (
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">'
+            f'<rect width="128" height="128" rx="28" fill="#1f140e" />'
+            f'<rect x="4" y="4" width="120" height="120" rx="24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-opacity="0.4" />'
+            f'<text x="64" y="73" font-family="sans-serif" font-size="32" font-weight="900" fill="#fcd34d" text-anchor="middle" dominant-baseline="middle">{initials}</text>'
+            f'</svg>'
+        )
+        return HttpResponse(svg, content_type='image/svg+xml')
     # Default to MEDIA_ROOT
     return serve(request, path, document_root=settings.MEDIA_ROOT)
 
