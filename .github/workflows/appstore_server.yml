@@ -25,7 +25,9 @@ jobs:
         with:
           node-version: '20'
 
-      # 1. INSTALL & SETUP RCLONE
+      # ----------------------------------------------------
+      # 1. INSTALL & SETUP RCLONE (Google Drive CLI)
+      # ----------------------------------------------------
       - name: Install Rclone
         run: |
           sudo apt-get update -qq
@@ -50,7 +52,9 @@ jobs:
             echo "WARNING: Could not list gdrive root. Checking AppStoreBackup folder directly..."
           }
 
+      # ----------------------------------------------------
       # 2. RESTORE DB, MEDIA & APKS FROM GOOGLE DRIVE
+      # ----------------------------------------------------
       - name: Restore DB, Media & APKs from Google Drive
         run: |
           echo "=========================================================="
@@ -81,7 +85,9 @@ jobs:
           
           echo "Restore step completed successfully."
 
+      # ----------------------------------------------------
       # 3. INSTALL CLOUDFLARED
+      # ----------------------------------------------------
       - name: Install Cloudflared
         run: |
           echo "=== Installing Cloudflared ==="
@@ -89,7 +95,9 @@ jobs:
           sudo dpkg -i /tmp/cloudflared.deb || sudo apt-get install -f -y
           cloudflared --version
 
-      # 4. INSTALL DEPENDENCIES
+      # ----------------------------------------------------
+      # 4. INSTALL DEPENDENCIES (PYTHON & NODE.JS)
+      # ----------------------------------------------------
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
@@ -110,7 +118,9 @@ jobs:
             npm install --legacy-peer-deps
           fi
 
+      # ----------------------------------------------------
       # 5. RUN DJANGO MIGRATIONS & COLLECT STATIC
+      # ----------------------------------------------------
       - name: Run Django Migrations & Collect Static
         env:
           DJANGO_SETTINGS_MODULE: appstore_project.settings
@@ -170,7 +180,9 @@ jobs:
             cp -r static/css/* staticfiles/css/ 2>/dev/null || true
           fi
 
+      # ----------------------------------------------------
       # 6. CREATE OR REFRESH SUPERUSER
+      # ----------------------------------------------------
       - name: Create or Refresh Superuser
         env:
           DJANGO_SUPERUSER_USERNAME: ${{ secrets.SUPERUSER_USERNAME }}
@@ -201,7 +213,9 @@ jobs:
               print(f"Superuser '{username}' refreshed with updated credentials.")
           EOF
 
+      # ----------------------------------------------------
       # 7. START GUNICORN BACKEND
+      # ----------------------------------------------------
       - name: Start Gunicorn (Backend)
         env:
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
@@ -224,7 +238,9 @@ jobs:
             sleep 1
           done
 
+      # ----------------------------------------------------
       # 8. START VITE FRONTEND
+      # ----------------------------------------------------
       - name: Start Vite Frontend
         run: |
           echo "=== Starting Vite Frontend on 0.0.0.0:3000 ==="
@@ -238,7 +254,9 @@ jobs:
             sleep 1
           done
 
+      # ----------------------------------------------------
       # 9. START CLOUDFLARE TUNNELS
+      # ----------------------------------------------------
       - name: Start Cloudflare Tunnels
         env:
           BACKEND_TOKEN: ${{ secrets.CLOUDFLARE_BACKEND_TOKEN }}
@@ -258,7 +276,9 @@ jobs:
           sleep 6
           echo "Cloudflare tunnels launched successfully."
 
+      # ----------------------------------------------------
       # 10. MONITOR & AUTO-BACKUP DAEMON
+      # ----------------------------------------------------
       - name: Monitor, Keep Alive & Periodic Drive Sync (360 Minutes)
         timeout-minutes: 360
         run: |
@@ -339,7 +359,9 @@ EOF
 
           kill $AUTOSYNC_PID 2>/dev/null || true
 
+      # ----------------------------------------------------
       # 11. SAFE PUSH DATA TO GOOGLE DRIVE ON CLOSE
+      # ----------------------------------------------------
       - name: Safe Push Data to Google Drive on Close
         if: always()
         run: |
