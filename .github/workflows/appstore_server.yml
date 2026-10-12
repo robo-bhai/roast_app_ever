@@ -3,7 +3,6 @@ name: Run AppStore Test Servers & Cloudflare Tunnel
 on:
   workflow_dispatch:
 
-# When a new workflow is triggered, cancel any previously running instance safely
 concurrency:
   group: appstore-server-group
   cancel-in-progress: true
@@ -26,9 +25,7 @@ jobs:
         with:
           node-version: '20'
 
-      # ----------------------------------------------------
-      # 1. INSTALL & SETUP RCLONE (Google Drive CLI)
-      # ----------------------------------------------------
+      # 1. INSTALL & SETUP RCLONE
       - name: Install Rclone
         run: |
           sudo apt-get update -qq
@@ -48,15 +45,12 @@ jobs:
           chmod 600 ~/.config/rclone/rclone.conf
           echo "Rclone config installed successfully."
           
-          # Test connection to Google Drive
           echo "=== Testing Google Drive Connection ==="
           rclone lsd gdrive: || {
             echo "WARNING: Could not list gdrive root. Checking AppStoreBackup folder directly..."
           }
 
-      # ----------------------------------------------------
-      # 2. RESTORE DB, MEDIA & APKS FROM GOOGLE DRIVE (BEFORE STARTUP)
-      # ----------------------------------------------------
+      # 2. RESTORE DB, MEDIA & APKS FROM GOOGLE DRIVE
       - name: Restore DB, Media & APKs from Google Drive
         run: |
           echo "=========================================================="
@@ -64,21 +58,16 @@ jobs:
           echo "=========================================================="
           mkdir -p media apks
 
-          # 1. Check if remote backup exists
           if rclone lsf gdrive:AppStoreBackup/db.sqlite3 > /dev/null 2>&1; then
             echo ">>> Remote db.sqlite3 found! Overwriting local with remote backup..."
             rclone copyto gdrive:AppStoreBackup/db.sqlite3 ./db.sqlite3 --verbose
-            
-            # Also restore any WAL/SHM file if uploaded
             rclone copy gdrive:AppStoreBackup/ ./ --include "db.sqlite3-*" --verbose || true
-            
             echo "Database successfully restored from Google Drive."
             ls -lh db.sqlite3
           else
             echo ">>> No existing remote db.sqlite3 found on Drive. A fresh database will be initialized."
           fi
 
-          # 2. Restore Media and APKs comprehensively
           echo ">>> Restoring media assets, icons, banners, and APK files..."
           mkdir -p media media/icons media/banners media/apks apks
           rclone copy gdrive:AppStoreBackup/media ./media/ --verbose || true
@@ -90,12 +79,9 @@ jobs:
           cp -r apks/* media/apks/ 2>/dev/null || true
           cp -r media/apks/* apks/ 2>/dev/null || true
           
-          echo "Restore step completed successfully. Restored media tree:"
-          ls -R media/ || true
+          echo "Restore step completed successfully."
 
-      # ----------------------------------------------------
       # 3. INSTALL CLOUDFLARED
-      # ----------------------------------------------------
       - name: Install Cloudflared
         run: |
           echo "=== Installing Cloudflared ==="
@@ -103,9 +89,7 @@ jobs:
           sudo dpkg -i /tmp/cloudflared.deb || sudo apt-get install -f -y
           cloudflared --version
 
-      # ----------------------------------------------------
-      # 4. INSTALL DEPENDENCIES (PYTHON & NODE.JS)
-      # ----------------------------------------------------
+      # 4. INSTALL DEPENDENCIES
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
@@ -126,9 +110,7 @@ jobs:
             npm install --legacy-peer-deps
           fi
 
-      # ----------------------------------------------------
       # 5. RUN DJANGO MIGRATIONS & COLLECT STATIC
-      # ----------------------------------------------------
       - name: Run Django Migrations & Collect Static
         env:
           DJANGO_SETTINGS_MODULE: appstore_project.settings
@@ -141,7 +123,6 @@ jobs:
           python manage.py makemigrations || true
           python manage.py migrate --run-syncdb || python manage.py migrate --noinput
 
-          # Auto-heal: Ensure all models including store_appreview exist in SQLite
           python - << 'EOF' || true
           import os, django
           os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
@@ -183,25 +164,13 @@ jobs:
           if [ -d "staticfiles/admin" ]; then
             mkdir -p static/admin
             cp -r staticfiles/admin/* static/admin/ 2>/dev/null || true
-            echo "[Workflow] Admin static assets safely synced into static/admin/."
           fi
           if [ -d "static/css" ]; then
             mkdir -p staticfiles/css
             cp -r static/css/* staticfiles/css/ 2>/dev/null || true
           fi
 
-          python - << 'EOF' || true
-          import os, django
-          os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
-          django.setup()
-          from store.models import App, AppDemand
-          print(f"[DB Status] Total Apps in DB: {App.objects.count()}")
-          print(f"[DB Status] Total Demands in DB: {AppDemand.objects.count()}")
-          EOF
-
-      # ----------------------------------------------------
-      # 6. CREATE OR REFRESH SUPERUSER (SAFE - NO DATA LOSS)
-      # ----------------------------------------------------
+      # 6. CREATE OR REFRESH SUPERUSER
       - name: Create or Refresh Superuser
         env:
           DJANGO_SUPERUSER_USERNAME: ${{ secrets.SUPERUSER_USERNAME }}
@@ -232,9 +201,7 @@ jobs:
               print(f"Superuser '{username}' refreshed with updated credentials.")
           EOF
 
-      # ----------------------------------------------------
-      # 7. START GUNICORN BACKEND (PORT 8000)
-      # ----------------------------------------------------
+      # 7. START GUNICORN BACKEND
       - name: Start Gunicorn (Backend)
         env:
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
@@ -257,9 +224,7 @@ jobs:
             sleep 1
           done
 
-      # ----------------------------------------------------
-      # 8. START VITE FRONTEND (PORT 3000)
-      # ----------------------------------------------------
+      # 8. START VITE FRONTEND
       - name: Start Vite Frontend
         run: |
           echo "=== Starting Vite Frontend on 0.0.0.0:3000 ==="
@@ -273,9 +238,7 @@ jobs:
             sleep 1
           done
 
-      # ----------------------------------------------------
       # 9. START CLOUDFLARE TUNNELS
-      # ----------------------------------------------------
       - name: Start Cloudflare Tunnels
         env:
           BACKEND_TOKEN: ${{ secrets.CLOUDFLARE_BACKEND_TOKEN }}
@@ -295,9 +258,7 @@ jobs:
           sleep 6
           echo "Cloudflare tunnels launched successfully."
 
-      # ----------------------------------------------------
-      # 10. MONITOR, AUTO-BACKUP DAEMON & KEEP ALIVE (Up to 6 Hours)
-      # ----------------------------------------------------
+      # 10. MONITOR & AUTO-BACKUP DAEMON
       - name: Monitor, Keep Alive & Periodic Drive Sync (360 Minutes)
         timeout-minutes: 360
         run: |
@@ -378,9 +339,7 @@ EOF
 
           kill $AUTOSYNC_PID 2>/dev/null || true
 
-      # ----------------------------------------------------
-      # 11. SAFE PUSH DATA TO GOOGLE DRIVE ON CLOSE (always())
-      # ----------------------------------------------------
+      # 11. SAFE PUSH DATA TO GOOGLE DRIVE ON CLOSE
       - name: Safe Push Data to Google Drive on Close
         if: always()
         run: |
@@ -414,11 +373,7 @@ EOF
             if [ -f "db.sqlite3" ]; then
               echo ">>> Backing up primary db.sqlite3..."
               rclone copyto db.sqlite3 gdrive:AppStoreBackup/db.sqlite3 --verbose
-              
-              echo ">>> Creating timestamped snapshot backup (db_${TIMESTAMP}.sqlite3)..."
               rclone copyto db.sqlite3 gdrive:AppStoreBackup/snapshots/db_${TIMESTAMP}.sqlite3 --verbose || true
-            else
-              echo "WARNING: db.sqlite3 not found locally!"
             fi
             
             if [ -d "media/apks" ]; then
@@ -431,27 +386,17 @@ EOF
             fi
 
             if [ -d "media" ]; then
-              echo ">>> Syncing media files (uploaded icons, banners, APKs)..."
               rclone copy media gdrive:AppStoreBackup/media/ --verbose
             fi
-
             if [ -d "media/icons" ]; then
-              echo ">>> Syncing icons directly..."
               rclone copy media/icons gdrive:AppStoreBackup/icons/ --verbose || true
             fi
-
             if [ -d "media/banners" ]; then
-              echo ">>> Syncing banners directly..."
               rclone copy media/banners gdrive:AppStoreBackup/banners/ --verbose || true
             fi
-
             if [ -d "apks" ]; then
-              echo ">>> Syncing apks directory..."
               rclone copy apks gdrive:AppStoreBackup/apks/ --verbose
             fi
-
-            echo "=== Verification of Google Drive Remote Backup ==="
-            rclone lsf gdrive:AppStoreBackup/ || true
 
             echo "=========================================================="
             echo "  DATA SUCCESSFULLY BACKED UP TO GOOGLE DRIVE!"
