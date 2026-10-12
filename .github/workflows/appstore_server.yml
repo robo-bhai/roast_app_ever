@@ -25,9 +25,7 @@ jobs:
         with:
           node-version: '20'
 
-      # ----------------------------------------------------
-      # 1. INSTALL & SETUP RCLONE (Google Drive CLI)
-      # ----------------------------------------------------
+      # 1. INSTALL & SETUP RCLONE
       - name: Install Rclone
         run: |
           sudo apt-get update -qq
@@ -52,9 +50,7 @@ jobs:
             echo "WARNING: Could not list gdrive root. Checking AppStoreBackup folder directly..."
           }
 
-      # ----------------------------------------------------
       # 2. RESTORE DB, MEDIA & APKS FROM GOOGLE DRIVE
-      # ----------------------------------------------------
       - name: Restore DB, Media & APKs from Google Drive
         run: |
           echo "=========================================================="
@@ -85,9 +81,7 @@ jobs:
           
           echo "Restore step completed successfully."
 
-      # ----------------------------------------------------
       # 3. INSTALL CLOUDFLARED
-      # ----------------------------------------------------
       - name: Install Cloudflared
         run: |
           echo "=== Installing Cloudflared ==="
@@ -95,9 +89,7 @@ jobs:
           sudo dpkg -i /tmp/cloudflared.deb || sudo apt-get install -f -y
           cloudflared --version
 
-      # ----------------------------------------------------
-      # 4. INSTALL DEPENDENCIES (PYTHON & NODE.JS)
-      # ----------------------------------------------------
+      # 4. INSTALL DEPENDENCIES
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
@@ -118,9 +110,7 @@ jobs:
             npm install --legacy-peer-deps
           fi
 
-      # ----------------------------------------------------
       # 5. RUN DJANGO MIGRATIONS & COLLECT STATIC
-      # ----------------------------------------------------
       - name: Run Django Migrations & Collect Static
         env:
           DJANGO_SETTINGS_MODULE: appstore_project.settings
@@ -133,7 +123,7 @@ jobs:
           python manage.py makemigrations || true
           python manage.py migrate --run-syncdb || python manage.py migrate --noinput
 
-          python - << 'EOF' || true
+          python -c "
           import os, django
           os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
           django.setup()
@@ -141,7 +131,7 @@ jobs:
           with connection.cursor() as cursor:
               tables = connection.introspection.table_names()
               if 'store_app' in tables and 'store_appreview' not in tables:
-                  cursor.execute("""
+                  cursor.execute('''
                       CREATE TABLE IF NOT EXISTS store_appreview (
                           id INTEGER PRIMARY KEY AUTOINCREMENT,
                           user_name VARCHAR(100) NOT NULL,
@@ -153,10 +143,10 @@ jobs:
                           created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                           app_id BIGINT NOT NULL REFERENCES store_app (id) DEFERRABLE INITIALLY DEFERRED
                       );
-                  """)
-                  cursor.execute("CREATE INDEX IF NOT EXISTS store_appreview_app_id_idx ON store_appreview (app_id);")
-                  print("[Workflow Auto-Heal] Successfully ensured store_appreview table exists.")
-          EOF
+                  ''')
+                  cursor.execute('CREATE INDEX IF NOT EXISTS store_appreview_app_id_idx ON store_appreview (app_id);')
+                  print('[Workflow Auto-Heal] Successfully ensured store_appreview table exists.')
+          " || true
 
           echo "=== Collecting Static Files & Syncing Safe Media Assets ==="
           mkdir -p static staticfiles media static/images public/images media/banners media/icons static/css
@@ -180,29 +170,25 @@ jobs:
             cp -r static/css/* staticfiles/css/ 2>/dev/null || true
           fi
 
-      # ----------------------------------------------------
       # 6. CREATE OR REFRESH SUPERUSER
-      # ----------------------------------------------------
       - name: Create or Refresh Superuser
         env:
           DJANGO_SUPERUSER_USERNAME: ${{ secrets.SUPERUSER_USERNAME }}
           DJANGO_SUPERUSER_EMAIL: ${{ secrets.SUPERUSER_EMAIL }}
           DJANGO_SUPERUSER_PASSWORD: ${{ secrets.SUPERUSER_PASSWORD }}
         run: |
-          python - << 'EOF'
+          python -c "
           import os, django
           os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
           django.setup()
           from django.contrib.auth import get_user_model
-          
           User = get_user_model()
           username = os.getenv('DJANGO_SUPERUSER_USERNAME', 'admin')
           email = os.getenv('DJANGO_SUPERUSER_EMAIL', 'admin@example.com')
           password = os.getenv('DJANGO_SUPERUSER_PASSWORD', 'admin1234')
-
           if not User.objects.filter(username=username).exists():
               User.objects.create_superuser(username=username, email=email, password=password)
-              print(f"Superuser '{username}' created successfully.")
+              print(f'Superuser {username} created successfully.')
           else:
               user = User.objects.get(username=username)
               user.set_password(password)
@@ -210,12 +196,10 @@ jobs:
               user.is_staff = True
               user.is_superuser = True
               user.save()
-              print(f"Superuser '{username}' refreshed with updated credentials.")
-          EOF
+              print(f'Superuser {username} refreshed with updated credentials.')
+          "
 
-      # ----------------------------------------------------
       # 7. START GUNICORN BACKEND
-      # ----------------------------------------------------
       - name: Start Gunicorn (Backend)
         env:
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
@@ -238,9 +222,7 @@ jobs:
             sleep 1
           done
 
-      # ----------------------------------------------------
       # 8. START VITE FRONTEND
-      # ----------------------------------------------------
       - name: Start Vite Frontend
         run: |
           echo "=== Starting Vite Frontend on 0.0.0.0:3000 ==="
@@ -254,9 +236,7 @@ jobs:
             sleep 1
           done
 
-      # ----------------------------------------------------
       # 9. START CLOUDFLARE TUNNELS
-      # ----------------------------------------------------
       - name: Start Cloudflare Tunnels
         env:
           BACKEND_TOKEN: ${{ secrets.CLOUDFLARE_BACKEND_TOKEN }}
@@ -276,9 +256,7 @@ jobs:
           sleep 6
           echo "Cloudflare tunnels launched successfully."
 
-      # ----------------------------------------------------
       # 10. MONITOR & AUTO-BACKUP DAEMON
-      # ----------------------------------------------------
       - name: Monitor, Keep Alive & Periodic Drive Sync (360 Minutes)
         timeout-minutes: 360
         run: |
@@ -294,16 +272,7 @@ jobs:
               sleep 45
               echo "[Auto-Backup Daemon] Running periodic sync to Google Drive..."
               if [ -f ~/.config/rclone/rclone.conf ]; then
-                python - << 'EOF' || true
-import sqlite3, os
-if os.path.exists('db.sqlite3'):
-    try:
-        conn = sqlite3.connect('db.sqlite3')
-        conn.execute('PRAGMA wal_checkpoint(PASSIVE);')
-        conn.close()
-    except Exception:
-        pass
-EOF
+                python -c "import sqlite3, os; [sqlite3.connect('db.sqlite3').execute('PRAGMA wal_checkpoint(PASSIVE);').close() for _ in [1] if os.path.exists('db.sqlite3')]" || true
                 if [ -f "db.sqlite3" ]; then
                   rclone copyto db.sqlite3 gdrive:AppStoreBackup/db.sqlite3 --quiet || true
                 fi
@@ -359,9 +328,7 @@ EOF
 
           kill $AUTOSYNC_PID 2>/dev/null || true
 
-      # ----------------------------------------------------
       # 11. SAFE PUSH DATA TO GOOGLE DRIVE ON CLOSE
-      # ----------------------------------------------------
       - name: Safe Push Data to Google Drive on Close
         if: always()
         run: |
@@ -376,7 +343,7 @@ EOF
           sleep 2
 
           echo ">>> Flushing SQLite WAL log into main database file..."
-          python - << 'EOF' || true
+          python -c "
           import os, sqlite3
           if os.path.exists('db.sqlite3'):
               try:
@@ -384,10 +351,10 @@ EOF
                   conn.execute('PRAGMA wal_checkpoint(TRUNCATE);')
                   conn.commit()
                   conn.close()
-                  print("SQLite WAL TRUNCATE checkpoint finished successfully.")
+                  print('SQLite WAL TRUNCATE checkpoint finished successfully.')
               except Exception as e:
-                  print(f"WAL Checkpoint warning: {e}")
-          EOF
+                  print(f'WAL Checkpoint warning: {e}')
+          " || true
 
           if [ -f ~/.config/rclone/rclone.conf ]; then
             TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
