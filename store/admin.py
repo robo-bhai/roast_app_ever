@@ -2,6 +2,11 @@ from django.contrib import admin
 from django.utils.html import format_html
 from .models import App, AppDemand, AppReview
 
+# Global Django Admin Header Customization
+admin.site.site_header = "Hadi88 Apps Administration"
+admin.site.site_title = "Hadi88 Apps Admin Portal"
+admin.site.index_title = "Store, Catalog & Demand Management"
+
 @admin.register(App)
 class AppAdmin(admin.ModelAdmin):
     list_display = (

@@ -31,14 +31,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
-    # Custom Middleware (Updated from 'app' to 'store')
-    'store.middleware.ShareholderRestrictionMiddleware',
-    'store.middleware.LiveVisitorMiddleware',
-    'store.middleware.AdminActivityMiddleware',
 ]
 
 ROOT_URLCONF = 'appstore_project.urls'
@@ -83,8 +77,16 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+
+# WhiteNoise settings for ultra-reliable static delivery without 404s
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = True
+WHITENOISE_STATIC_PREFIX = '/static/'
 
 # Media files (Uploaded APKs, Icons, Banners)
 MEDIA_URL = '/media/'
