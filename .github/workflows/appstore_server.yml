@@ -20,13 +20,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-         # cache: 'pip'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-         # cache: 'npm'
 
       # ----------------------------------------------------
       # 1. INSTALL & SETUP RCLONE (Google Drive CLI)
@@ -69,7 +67,6 @@ jobs:
           # 1. Check if remote backup exists
           if rclone lsf gdrive:AppStoreBackup/db.sqlite3 > /dev/null 2>&1; then
             echo ">>> Remote db.sqlite3 found! Overwriting local with remote backup..."
-            # Use copyto to ensure exact file replacement (NO --ignore-existing!)
             rclone copyto gdrive:AppStoreBackup/db.sqlite3 ./db.sqlite3 --verbose
             
             # Also restore any WAL/SHM file if uploaded
@@ -81,7 +78,7 @@ jobs:
             echo ">>> No existing remote db.sqlite3 found on Drive. A fresh database will be initialized."
           fi
 
-          # 2. Restore Media and APKs comprehensively (no missing icons or assets)
+          # 2. Restore Media and APKs comprehensively
           echo ">>> Restoring media assets, icons, banners, and APK files..."
           mkdir -p media media/icons media/banners media/apks apks
           rclone copy gdrive:AppStoreBackup/media ./media/ --verbose || true
@@ -90,7 +87,6 @@ jobs:
           rclone copy gdrive:AppStoreBackup/apks ./apks/ --verbose || true
           rclone copy gdrive:AppStoreBackup/apks ./media/apks/ --verbose || true
           
-          # Sync between apks/ and media/apks/ so APKs are available regardless of path!
           cp -r apks/* media/apks/ 2>/dev/null || true
           cp -r media/apks/* apks/ 2>/dev/null || true
           
@@ -184,7 +180,6 @@ jobs:
           fi
           python manage.py collectstatic --noinput || true
 
-          # Mirror staticfiles/admin into static/admin so /static/admin requests never 404
           if [ -d "staticfiles/admin" ]; then
             mkdir -p static/admin
             cp -r staticfiles/admin/* static/admin/ 2>/dev/null || true
@@ -195,7 +190,6 @@ jobs:
             cp -r static/css/* staticfiles/css/ 2>/dev/null || true
           fi
 
-          # Verify database records
           python - << 'EOF' || true
           import os, django
           os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
@@ -255,7 +249,6 @@ jobs:
             --access-logfile gunicorn_access.log \
             --error-logfile gunicorn.log > /dev/null 2>&1 &
           
-          # Health check for port 8000
           for i in {1..20}; do
             if curl -s http://127.0.0.1:8000/ > /dev/null 2>&1; then
               echo "Gunicorn backend is up and running!"
@@ -272,7 +265,6 @@ jobs:
           echo "=== Starting Vite Frontend on 0.0.0.0:3000 ==="
           nohup npm run dev -- --host 0.0.0.0 --port 3000 > vite.log 2>&1 &
           
-          # Health check for port 3000
           for i in {1..20}; do
             if curl -s http://127.0.0.1:3000/ > /dev/null 2>&1; then
               echo "Vite frontend is up and running!"
@@ -316,24 +308,21 @@ jobs:
           echo "  - Periodic Google Drive auto-sync active every 5 minutes"
           echo "=========================================================="
           
-          # Start background auto-backup daemon every 5 minutes
-          # This protects against unexpected runner cancellation or crashes
           (
             while true; do
               sleep 45
               echo "[Auto-Backup Daemon] Running periodic sync to Google Drive..."
               if [ -f ~/.config/rclone/rclone.conf ]; then
-                # Safe SQLite WAL checkpoint flush
                 python - << 'EOF' || true
-                import sqlite3, os
-                if os.path.exists('db.sqlite3'):
-                    try:
-                        conn = sqlite3.connect('db.sqlite3')
-                        conn.execute('PRAGMA wal_checkpoint(PASSIVE);')
-                        conn.close()
-                    except Exception:
-                        pass
-          EOF
+import sqlite3, os
+if os.path.exists('db.sqlite3'):
+    try:
+        conn = sqlite3.connect('db.sqlite3')
+        conn.execute('PRAGMA wal_checkpoint(PASSIVE);')
+        conn.close()
+    except Exception:
+        pass
+EOF
                 if [ -f "db.sqlite3" ]; then
                   rclone copyto db.sqlite3 gdrive:AppStoreBackup/db.sqlite3 --quiet || true
                 fi
@@ -364,11 +353,9 @@ jobs:
           AUTOSYNC_PID=$!
           echo "Auto-backup background daemon started (PID: $AUTOSYNC_PID)."
 
-          # Monitor loops
           for i in {1..360}; do
             sleep 60
             
-            # Check Cloudflared processes
             if ! pgrep -f "cloudflared" > /dev/null; then
               echo "CRITICAL: Cloudflared process stopped!"
               tail -n 30 backend_cf.log || true
@@ -377,7 +364,6 @@ jobs:
               exit 1
             fi
             
-            # Check Gunicorn process
             if ! pgrep -f "gunicorn" > /dev/null; then
               echo "CRITICAL: Gunicorn backend stopped!"
               tail -n 30 gunicorn.log || true
@@ -385,7 +371,6 @@ jobs:
               exit 1
             fi
             
-            # Heartbeat log every 15 minutes
             if (( i % 15 == 0 )); then
               echo "[Heartbeat] Server live for $i minutes..."
             fi
@@ -403,14 +388,12 @@ jobs:
           echo "  WORKFLOW CLOSING: Syncing ALL Data to Google Drive"
           echo "=========================================================="
 
-          # 1. Gracefully stop Gunicorn & Vite so all database writes are committed
           echo ">>> Stopping background processes cleanly..."
           pkill -f "gunicorn" 2>/dev/null || true
           pkill -f "vite" 2>/dev/null || true
           pkill -f "cloudflared" 2>/dev/null || true
           sleep 2
 
-          # 2. SQLite WAL Checkpoint (TRUNCATE) & VACUUM to ensure 100% written into db.sqlite3
           echo ">>> Flushing SQLite WAL log into main database file..."
           python - << 'EOF' || true
           import os, sqlite3
@@ -425,7 +408,6 @@ jobs:
                   print(f"WAL Checkpoint warning: {e}")
           EOF
 
-          # 3. Upload DB, Media & APKs back to Google Drive
           if [ -f ~/.config/rclone/rclone.conf ]; then
             TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
             
@@ -439,7 +421,6 @@ jobs:
               echo "WARNING: db.sqlite3 not found locally!"
             fi
             
-            # Sync between media/apks and apks before push to Drive
             if [ -d "media/apks" ]; then
               mkdir -p apks
               cp -r media/apks/* apks/ 2>/dev/null || true
