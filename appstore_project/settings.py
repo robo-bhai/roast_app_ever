@@ -26,7 +26,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',   # nayi line
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -35,10 +35,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
-    # Custom Middleware
-    'app.middleware.ShareholderRestrictionMiddleware',
-    'app.middleware.LiveVisitorMiddleware',
-    'app.middleware.AdminActivityMiddleware',
+    # Custom Middleware (Updated from 'app' to 'store')
+    'store.middleware.ShareholderRestrictionMiddleware',
+    'store.middleware.LiveVisitorMiddleware',
+    'store.middleware.AdminActivityMiddleware',
 ]
 
 ROOT_URLCONF = 'appstore_project.urls'
@@ -83,8 +83,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-WHITENOISE_USE_FINDERS = True
-# WhiteNoise settings for ultra-reliable static delivery without 404s
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = True
 
