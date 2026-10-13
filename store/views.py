@@ -172,7 +172,7 @@ class AppCatalogView(ListView):
 
 def live_search_ajax(request):
     """Instant AJAX search endpoint matching user input without page reloads"""
-    query = request.GET.get('term', '').strip()
+    query = (request.GET.get('term') or request.GET.get('q') or '').strip()
     if len(query) < 1:
         return JsonResponse({'results': []})
 
@@ -183,7 +183,7 @@ def live_search_ajax(request):
         Q(package_name__icontains=query) |
         Q(description__icontains=query),
         is_published=True
-    )[:10]
+    )[:12]
 
     return JsonResponse({'results': [
         {

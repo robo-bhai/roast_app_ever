@@ -13,6 +13,42 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-hadi88-apps-secure-prod
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = ['*']
 
+# Reverse Proxy & Cloudflare SSL / HTTPS Header Trust
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+# CSRF Trusted Origins - Allow Cloudflare custom domains, wildcards, and local tunnels
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.uqn88.store',
+    'https://uqn88.store',
+    'http://*.uqn88.store',
+    'http://uqn88.store',
+    'https://*.trycloudflare.com',
+    'https://*.run.app',
+    'https://*.github.dev',
+    'https://*.app.github.dev',
+    'https://*.ngrok-free.app',
+    'https://*.loca.lt',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://0.0.0.0:8000',
+]
+# If additional domains are passed via environment
+custom_domain = os.environ.get('CUSTOM_DOMAIN', '').strip()
+if custom_domain:
+    if not custom_domain.startswith('http'):
+        CSRF_TRUSTED_ORIGINS.extend([f"https://{custom_domain}", f"http://{custom_domain}"])
+    else:
+        CSRF_TRUSTED_ORIGINS.append(custom_domain)
+
+# Cookie security - avoid blocking logins through reverse proxies
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -27,12 +63,19 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'store.middleware.DynamicCsrfTrustedOriginsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# Support logging in with either username or email address
+AUTHENTICATION_BACKENDS = [
+    'store.backends.EmailOrUsernameBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 ROOT_URLCONF = 'appstore_project.urls'
@@ -78,9 +121,15 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+
 # WhiteNoise settings for ultra-reliable static delivery without 404s
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = True
+WHITENOISE_STATIC_PREFIX = '/static/'
 
 # Media files (Uploaded APKs, Icons, Banners)
 MEDIA_URL = '/media/'

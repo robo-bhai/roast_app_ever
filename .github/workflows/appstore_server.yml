@@ -22,12 +22,6 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-         # cache: 'npm'
-
       # ----------------------------------------------------
       # 1. INSTALL & SETUP RCLONE (Google Drive CLI)
       # ----------------------------------------------------
@@ -42,8 +36,9 @@ jobs:
           RCLONE_CONFIG_BODY: ${{ secrets.RCLONE_CONFIG_DATA }}
         run: |
           if [ -z "$RCLONE_CONFIG_BODY" ]; then
-            echo "ERROR: RCLONE_CONFIG_DATA secret is empty! Cannot sync with Google Drive."
-            exit 1
+            echo "NOTICE: RCLONE_CONFIG_DATA secret is not provided."
+            echo "Skipping Google Drive setup. Server will run with local database persistence."
+            exit 0
           fi
           mkdir -p ~/.config/rclone
           echo "$RCLONE_CONFIG_BODY" > ~/.config/rclone/rclone.conf
@@ -61,10 +56,14 @@ jobs:
       # ----------------------------------------------------
       - name: Restore DB, Media & APKs from Google Drive
         run: |
+          mkdir -p media apks
+          if [ ! -f ~/.config/rclone/rclone.conf ]; then
+            echo "NOTICE: Rclone config missing. Skipping Google Drive download, using local assets."
+            exit 0
+          fi
           echo "=========================================================="
           echo "  RESTORE DATA: Downloading latest state from Google Drive"
           echo "=========================================================="
-          mkdir -p media apks
 
           # 1. Check if remote backup exists
           if rclone lsf gdrive:AppStoreBackup/db.sqlite3 > /dev/null 2>&1; then
@@ -108,27 +107,27 @@ jobs:
           cloudflared --version
 
       # ----------------------------------------------------
-      # 4. INSTALL DEPENDENCIES (PYTHON & NODE.JS)
+      # 4. INSTALL PYTHON DEPENDENCIES & PREPARE ASSETS
       # ----------------------------------------------------
-      - name: Install Python Dependencies
+      - name: Install Python Dependencies & Prepare Assets
         run: |
+          echo "=== Installing Python dependencies ==="
           python -m pip install --upgrade pip setuptools wheel
           pip install gunicorn whitenoise
           if [ -f requirements.txt ]; then 
             pip install -r requirements.txt
           fi
 
-      - name: Install Frontend Dependencies & Prepare Assets
-        run: |
-          mkdir -p public/images public/assets/images static/images media/icons media/banners apks
+          echo "=== Preparing Asset & Media directories ==="
+          mkdir -p public/images static/images static/css media/icons media/banners media/apks apks staticfiles
           if [ -d "src/assets/images" ]; then
             cp -r src/assets/images/* public/images/ 2>/dev/null || true
-            cp -r src/assets/images/* public/assets/images/ 2>/dev/null || true
             cp -r src/assets/images/* static/images/ 2>/dev/null || true
           fi
-          if [ -f package.json ]; then 
-            npm install --legacy-peer-deps
+          if [ -d "public/images" ]; then
+            cp -r public/images/* static/images/ 2>/dev/null || true
           fi
+          echo "Dependencies installed and asset directories prepared."
 
       # ----------------------------------------------------
       # 5. RUN DJANGO MIGRATIONS & COLLECT STATIC
@@ -171,25 +170,39 @@ jobs:
                   print("[Workflow Auto-Heal] Successfully ensured store_appreview table exists.")
           EOF
 
-          echo "=== Collecting Static Files & Syncing Safe Media Assets ==="
-          mkdir -p static staticfiles media static/images public/images media/banners media/icons static/css
-          if [ -d "src/assets/images" ]; then
-            cp -r src/assets/images/* static/images/ 2>/dev/null || true
-            cp -r src/assets/images/* public/images/ 2>/dev/null || true
-            cp -r src/assets/images/* media/banners/ 2>/dev/null || true
-          fi
-          if [ -d "public/images" ]; then
-            cp -r public/images/* static/images/ 2>/dev/null || true
-            cp -r public/images/* media/banners/ 2>/dev/null || true
-          fi
+          echo "=== Collecting Static Files & Syncing Django Admin Design ==="
+          mkdir -p static staticfiles media static/images public/images media/banners media/icons static/css static/admin staticfiles/admin
+          
+          # Run collectstatic with finders without clearing custom pre-bundled assets
           python manage.py collectstatic --noinput || true
 
-          # Mirror staticfiles/admin into static/admin so /static/admin requests never 404
-          if [ -d "staticfiles/admin" ]; then
-            mkdir -p static/admin
-            cp -r staticfiles/admin/* static/admin/ 2>/dev/null || true
-            echo "[Workflow] Admin static assets safely synced into static/admin/."
-          fi
+          # Direct sync of Django Admin package assets into static/admin and staticfiles/admin
+          python - << 'EOF' || true
+          import os, shutil, django
+          from django.conf import settings
+          os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
+          django.setup()
+          from django.contrib.staticfiles import finders
+
+          # Ensure static/admin is fully populated in static and staticfiles
+          dest_static = os.path.join(settings.BASE_DIR, 'static', 'admin')
+          dest_staticfiles = os.path.join(settings.BASE_DIR, 'staticfiles', 'admin')
+          os.makedirs(dest_static, exist_ok=True)
+          os.makedirs(dest_staticfiles, exist_ok=True)
+
+          admin_base_css = finders.find('admin/css/base.css')
+          if admin_base_css and os.path.exists(admin_base_css):
+              admin_pkg_dir = os.path.dirname(os.path.dirname(os.path.dirname(admin_base_css)))
+              if os.path.exists(admin_pkg_dir):
+                  shutil.copytree(admin_pkg_dir, dest_static, dirs_exist_ok=True)
+                  shutil.copytree(admin_pkg_dir, dest_staticfiles, dirs_exist_ok=True)
+          
+          # Also guarantee mirror from static/admin to staticfiles/admin
+          if os.path.exists(dest_static):
+              shutil.copytree(dest_static, dest_staticfiles, dirs_exist_ok=True)
+              print(f"[Workflow] Admin static assets confirmed in {dest_static} and {dest_staticfiles}.")
+          EOF
+
           if [ -d "static/css" ]; then
             mkdir -p staticfiles/css
             cp -r static/css/* staticfiles/css/ 2>/dev/null || true
@@ -221,21 +234,37 @@ jobs:
           from django.contrib.auth import get_user_model
           
           User = get_user_model()
-          username = os.getenv('DJANGO_SUPERUSER_USERNAME', 'admin')
-          email = os.getenv('DJANGO_SUPERUSER_EMAIL', 'admin@example.com')
-          password = os.getenv('DJANGO_SUPERUSER_PASSWORD', 'admin1234')
+          raw_username = os.getenv('DJANGO_SUPERUSER_USERNAME', '')
+          custom_username = raw_username.strip() if raw_username and raw_username.strip() else 'admin'
+          
+          raw_email = os.getenv('DJANGO_SUPERUSER_EMAIL', '')
+          custom_email = raw_email.strip() if raw_email and raw_email.strip() else 'admin@example.com'
+          
+          raw_password = os.getenv('DJANGO_SUPERUSER_PASSWORD', '')
+          password = raw_password.strip() if raw_password and raw_password.strip() else 'admin1234'
 
-          if not User.objects.filter(username=username).exists():
-              User.objects.create_superuser(username=username, email=email, password=password)
-              print(f"Superuser '{username}' created successfully.")
-          else:
-              user = User.objects.get(username=username)
-              user.set_password(password)
-              user.email = email
+          accounts_to_ensure = [
+              (custom_username, custom_email, password),
+              ('admin', 'admin@example.com', password),
+              ('nomi', 'nomistorage3@gmail.com', password),
+          ]
+
+          for uname, uemail, upass in accounts_to_ensure:
+              user = User.objects.filter(username=uname).first()
+              if not user and uemail:
+                  user = User.objects.filter(email=uemail).first()
+              
+              if not user:
+                  user = User.objects.create_superuser(username=uname, email=uemail, password=upass)
+              else:
+                  user.set_password(upass)
+                  user.email = uemail
+              
+              user.is_active = True
               user.is_staff = True
               user.is_superuser = True
               user.save()
-              print(f"Superuser '{username}' refreshed with updated credentials.")
+              print(f"[Auth] Superuser '{uname}' (email: {uemail}) verified active with password: {upass[:2]}****")
           EOF
 
       # ----------------------------------------------------
@@ -265,54 +294,50 @@ jobs:
           done
 
       # ----------------------------------------------------
-      # 8. START VITE FRONTEND (PORT 3000)
+      # 8. START CLOUDFLARE TUNNEL (DJANGO BACKEND PORT 8000)
       # ----------------------------------------------------
-      - name: Start Vite Frontend
-        run: |
-          echo "=== Starting Vite Frontend on 0.0.0.0:3000 ==="
-          nohup npm run dev -- --host 0.0.0.0 --port 3000 > vite.log 2>&1 &
-          
-          # Health check for port 3000
-          for i in {1..20}; do
-            if curl -s http://127.0.0.1:3000/ > /dev/null 2>&1; then
-              echo "Vite frontend is up and running!"
-              break
-            fi
-            sleep 1
-          done
-
-      # ----------------------------------------------------
-      # 9. START CLOUDFLARE TUNNELS
-      # ----------------------------------------------------
-      - name: Start Cloudflare Tunnels
+      - name: Start Cloudflare Tunnel (Django Backend & Admin)
         env:
-          BACKEND_TOKEN: ${{ secrets.CLOUDFLARE_BACKEND_TOKEN }}
-          FRONTEND_TOKEN: ${{ secrets.CLOUDFLARE_FRONTEND_TOKEN }}
+          BACKEND_TOKEN: ${{ secrets.CLOUDFLARE_BACKEND_TOKEN || secrets.CLOUDFLARE_TUNNEL_TOKEN || secrets.CLOUDFLARE_TOKEN }}
         run: |
-          if [ -z "$BACKEND_TOKEN" ] || [ -z "$FRONTEND_TOKEN" ]; then
-            echo "ERROR: CLOUDFLARE_BACKEND_TOKEN or CLOUDFLARE_FRONTEND_TOKEN secret missing!"
-            exit 1
+          if [ -n "$BACKEND_TOKEN" ]; then
+            echo "=== Starting Cloudflare Tunnel with Custom Domain Token ==="
+            nohup cloudflared tunnel --no-autoupdate run --token "$BACKEND_TOKEN" > backend_cf.log 2>&1 &
+            sleep 5
+            echo "Cloudflare tunnel launched with configured token."
+            echo "Connecting to your configured domain (e.g., https://api.uqn88.store or https://uqn88.store)."
+          else
+            echo "=== CLOUDFLARE_BACKEND_TOKEN secret not set ==="
+            echo "=== Launching Free Instant TryCloudflare Tunnel (No Token Needed) ==="
+            nohup cloudflared tunnel --url http://127.0.0.1:8000 --no-autoupdate > backend_cf.log 2>&1 &
+            sleep 6
+            TUNNEL_URL=$(grep -o 'https://[-a-zA-Z0-9.]*\.trycloudflare\.com' backend_cf.log | head -n 1 || true)
+            echo "=========================================================="
+            echo "  PUBLIC LIVE TUNNEL URL: $TUNNEL_URL"
+            echo "  Storefront: ${TUNNEL_URL}/"
+            echo "  Django Admin: ${TUNNEL_URL}/admin/"
+            echo "  Custom Admin: ${TUNNEL_URL}/admin/manage/login/"
+            echo "=========================================================="
+            if [ -n "$GITHUB_STEP_SUMMARY" ]; then
+              echo "## 🚀 Hadi88 AppStore Server is LIVE!" >> $GITHUB_STEP_SUMMARY
+              echo "- **Public Store:** [$TUNNEL_URL]($TUNNEL_URL)" >> $GITHUB_STEP_SUMMARY
+              echo "- **Django Admin:** [$TUNNEL_URL/admin/]($TUNNEL_URL/admin/)" >> $GITHUB_STEP_SUMMARY
+              echo "- **Custom Management:** [$TUNNEL_URL/admin/manage/]($TUNNEL_URL/admin/manage/)" >> $GITHUB_STEP_SUMMARY
+              echo "- **Login Username:** \`admin\` or \`nomistorage3@gmail.com\`" >> $GITHUB_STEP_SUMMARY
+              echo "- **Login Password:** \`admin1234\` (or secret \`SUPERUSER_PASSWORD\`)" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
-          
-          echo "=== Starting Backend Cloudflare Tunnel ==="
-          nohup cloudflared tunnel --no-autoupdate run --token "$BACKEND_TOKEN" > backend_cf.log 2>&1 &
-          
-          echo "=== Starting Frontend Cloudflare Tunnel ==="
-          nohup cloudflared tunnel --no-autoupdate run --token "$FRONTEND_TOKEN" > frontend_cf.log 2>&1 &
-          
-          sleep 6
-          echo "Cloudflare tunnels launched successfully."
 
       # ----------------------------------------------------
-      # 10. MONITOR, AUTO-BACKUP DAEMON & KEEP ALIVE (Up to 6 Hours)
+      # 9. MONITOR, AUTO-BACKUP DAEMON & KEEP ALIVE (Up to 6 Hours)
       # ----------------------------------------------------
       - name: Monitor, Keep Alive & Periodic Drive Sync (360 Minutes)
         timeout-minutes: 360
         run: |
           echo "=========================================================="
-          echo "  Hadi88 AppStore Servers & Cloudflare Tunnels LIVE!"
+          echo "  Hadi88 Django Store & Admin Server LIVE!"
           echo "  - Backend (Django / Gunicorn): Port 8000"
-          echo "  - Frontend (Vite App): Port 3000"
+          echo "  - Cloudflare Tunnel: Connected to 0.0.0.0:8000"
           echo "  - Periodic Google Drive auto-sync active every 5 minutes"
           echo "=========================================================="
           
@@ -368,11 +393,10 @@ jobs:
           for i in {1..360}; do
             sleep 60
             
-            # Check Cloudflared processes
+            # Check Cloudflared process
             if ! pgrep -f "cloudflared" > /dev/null; then
               echo "CRITICAL: Cloudflared process stopped!"
               tail -n 30 backend_cf.log || true
-              tail -n 30 frontend_cf.log || true
               kill $AUTOSYNC_PID 2>/dev/null || true
               exit 1
             fi
@@ -394,7 +418,7 @@ jobs:
           kill $AUTOSYNC_PID 2>/dev/null || true
 
       # ----------------------------------------------------
-      # 11. SAFE PUSH DATA TO GOOGLE DRIVE ON CLOSE (always())
+      # 10. SAFE PUSH DATA TO GOOGLE DRIVE ON CLOSE (always())
       # ----------------------------------------------------
       - name: Safe Push Data to Google Drive on Close
         if: always()
@@ -403,10 +427,9 @@ jobs:
           echo "  WORKFLOW CLOSING: Syncing ALL Data to Google Drive"
           echo "=========================================================="
 
-          # 1. Gracefully stop Gunicorn & Vite so all database writes are committed
+          # 1. Gracefully stop Gunicorn & Cloudflared so all database writes are committed
           echo ">>> Stopping background processes cleanly..."
           pkill -f "gunicorn" 2>/dev/null || true
-          pkill -f "vite" 2>/dev/null || true
           pkill -f "cloudflared" 2>/dev/null || true
           sleep 2
 
