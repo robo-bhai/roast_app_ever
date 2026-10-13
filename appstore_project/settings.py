@@ -78,7 +78,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'cloudinary',
     'django.contrib.humanize',
-    'app',
+    'store',
     'dbbackup',
     'import_export',
     'axes',
